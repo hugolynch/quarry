@@ -383,7 +383,7 @@
     <p>When you're stuck, use the <strong>Swap</strong> feature:</p>
     <ol>
       <li>Click the "Swap" button</li>
-      <li>Click any available (gray) tile</li>
+      <li>Click any available (beige) tile</li>
       <li>It gets replaced with a random new letter</li>
       <li>You have 3 swaps per game</li>
       <li>Cannot swap temporarily selectable (blue) tiles</li>
@@ -417,28 +417,29 @@
     </ul>
 
     <h4>Word Score</h4>
-    <p>Sum of letter point values:</p>
+    <p>Sum of letter point values (like Scrabble):</p>
     <ul>
-      <li><strong>1 point:</strong> A, E, I, L, N, O, R, S, T, U, * (wildcards)</li>
+      <li><strong>1 point:</strong> A, E, I, L, N, O, R, S, T, U</li>
       <li><strong>2 points:</strong> D, G</li>
       <li><strong>3 points:</strong> B, C, M, P</li>
       <li><strong>4 points:</strong> F, H, V, W, Y</li>
       <li><strong>5 points:</strong> K</li>
-      <li><strong>6 points:</strong> J, X</li>
-      <li><strong>7 points:</strong> Q, Z</li>
+      <li><strong>8 points:</strong> J, X</li>
+      <li><strong>10 points:</strong> Q, Z</li>
+      <li><strong>0 points:</strong> * (wildcards)</li>
     </ul>
 
     <h4>Example</h4>
     <p>Word "QUIZ" (4 letters):</p>
     <ul>
       <li>Length Score: 5 points (4 letters)</li>
-      <li>Word Score: 7 + 1 + 1 + 7 = 16 points (Q+U+I+Z)</li>
-      <li>Total: 5 × 16 = 80 points</li>
+      <li>Word Score: 10 + 1 + 1 + 10 = 22 points (Q+U+I+Z)</li>
+      <li>Total: 5 × 22 = 110 points</li>
     </ul>
 
     <h3>Special Tiles</h3>
     <ul>
-      <li><strong>Wildcards (*)</strong>: Can be any letter, but don't count towards the word length and have 1 point value</li>
+      <li><strong>Wildcards (*)</strong>: Can be any letter, but don't count towards the word length and have 0 point value</li>
     </ul>
 
     <h3>End Game</h3>
@@ -589,32 +590,33 @@
   }
 
   .tile.beige {
-    background-color: #F2F3FB;
-    border-bottom: 4px solid #C9CAD6;
+    background-color: #F2E3CA;
+    border-bottom: 4px solid #E4CBAF;
   }
 
   .tile.beige:hover {
-    background-color: #E8E9F0;
+    background-color: #EBD7BD;
   }
 
   .tile.green {
-    background-color: #EDF5EB;
-    border-bottom: 4px solid #ACD6A3;
+    background-color: #CCE6BF;
+    border-bottom: 4px solid #BED4AA;
   }
 
   .tile.orange {
-    background-color: #FADEC9;
-    border-bottom: 4px solid #EF9E58;
+    background-color: #F0C6AF;
+    border-bottom: 4px solid #E3B49A;
     cursor: not-allowed;
   }
 
   .tile.yellow {
-    background-color: #D4E5FF;
-    border-bottom: 4px solid #83B2FF;
+    background-color: #B3D9FF;
+    border-bottom: 4px solid #99CCFF;
+    animation: pulse 1.5s infinite;
   }
 
   .tile.yellow:hover {
-    background-color: #C7DDFF;
+    background-color: #A6D1FF;
   }
 
   .tile-pair {
@@ -672,8 +674,8 @@
   .demo-tile-small {
     width: 24px;
     height: 24px;
-    background-color: #F2F3FB;
-    border: 1px solid #C9CAD6;
+    background-color: #F2E3CA;
+    border: 1px solid #E6D3C0;
     border-radius: 4px;
     display: flex;
     align-items: center;
@@ -724,7 +726,7 @@
     border-radius: 8px;
     cursor: pointer;
     transition: background-color 0.1s ease;
-    border-bottom: 4px solid #C9CAD6;
+    border-bottom: 4px solid #E4CBAF;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -733,48 +735,47 @@
   }
 
   .demo-tile.available {
-    background-color: #F2F3FB;
-    border-bottom: 4px solid #C9CAD6;
+    background-color: #F2E3CA;
   }
 
   .demo-tile.available:hover:not(.selected) {
-    background-color: #E8E9F0;
+    background-color: #EBD7BD;
   }
 
   .demo-tile.unavailable {
-    background-color: #FADEC9;
-    border-bottom: 4px solid #EF9E58;
+    background-color: #F0C6AF;
+    border-bottom: 4px solid #E3B49A;
     cursor: not-allowed;
   }
 
   .demo-tile.temp-selectable {
-    background-color: #D4E5FF;
-    border-bottom: 4px solid #83B2FF;
+    background-color: #B3D9FF;
+    border-bottom: 4px solid #99CCFF;
     cursor: pointer;
   }
 
   .demo-tile.temp-selectable:hover:not(.selected) {
-    background-color: #C7DDFF;
+    background-color: #A6D1FF;
   }
 
   .demo-tile.selected {
-    background-color: #EDF5EB;
-    border-bottom: 4px solid #ACD6A3;
+    background-color: #CCE6BF;
+    border-bottom: 4px solid #BED4AA;
   }
 
   .demo-tile.selected:hover {
-    background-color: #EDF5EB;
+    background-color: #CCE6BF;
   }
 
   .demo-tile.temp-selectable.selected,
   .demo-tile.selected.temp-selectable {
-    background-color: #EDF5EB !important;
-    border-bottom: 4px solid #ACD6A3 !important;
+    background-color: #CCE6BF !important;
+    border-bottom: 4px solid #BED4AA !important;
   }
 
   .demo-tile.temp-selectable.selected:hover,
   .demo-tile.selected.temp-selectable:hover {
-    background-color: #EDF5EB !important;
+    background-color: #CCE6BF !important;
   }
 
   .demo-tile.empty {
@@ -853,8 +854,8 @@
   .word-tile {
     width: 40px;
     height: 40px;
-    background: #EDF5EB;
-    border: 2px solid #ACD6A3;
+    background: #90EE90;
+    border: 2px solid #4CAF50;
     border-radius: 4px;
     display: flex;
     align-items: center;
@@ -867,7 +868,7 @@
   }
 
   .word-tile:hover {
-    background: #D4EAD0;
+    background: #7ED321;
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
