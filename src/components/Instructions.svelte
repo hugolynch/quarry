@@ -391,11 +391,8 @@
 
     <h2>Scoring</h2>
 
-    <h3>How Scoring Works</h3>
-    <p>Each word's score is calculated as: <strong>Length Score × Word Score</strong></p>
-    
-    <h4>Length Score</h4>
-    <p>Based on word length (excluding wildcards):</p>
+    <h3>Word Points</h3>
+    <p>Points are based on word length:</p>
     <ul>
       <li>1 letters = 0 points</li>
       <li>2 letters = 1 point</li>
@@ -416,30 +413,9 @@
       <li>17+ = Even more points!</li>
     </ul>
 
-    <h4>Word Score</h4>
-    <p>Sum of letter point values (like Scrabble):</p>
-    <ul>
-      <li><strong>1 point:</strong> A, E, I, L, N, O, R, S, T, U</li>
-      <li><strong>2 points:</strong> D, G</li>
-      <li><strong>3 points:</strong> B, C, M, P</li>
-      <li><strong>4 points:</strong> F, H, V, W, Y</li>
-      <li><strong>5 points:</strong> K</li>
-      <li><strong>8 points:</strong> J, X</li>
-      <li><strong>10 points:</strong> Q, Z</li>
-      <li><strong>0 points:</strong> * (wildcards)</li>
-    </ul>
-
-    <h4>Example</h4>
-    <p>Word "QUIZ" (4 letters):</p>
-    <ul>
-      <li>Length Score: 5 points (4 letters)</li>
-      <li>Word Score: 10 + 1 + 1 + 10 = 22 points (Q+U+I+Z)</li>
-      <li>Total: 5 × 22 = 110 points</li>
-    </ul>
-
     <h3>Special Tiles</h3>
     <ul>
-      <li><strong>Wildcards (*)</strong>: Can be any letter, but don't count towards the word length and have 0 point value</li>
+      <li><strong>Wildcards (*)</strong>: Can be any letter, but don't count towards the word length</li>
     </ul>
 
     <h3>End Game</h3>

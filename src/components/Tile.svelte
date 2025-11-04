@@ -30,38 +30,10 @@
     }
   }}
 >
-  <div class="corner top-left">
-    {#if tile.completelyCovered}
-      ?
-    {:else}
-      <span class="letter">{tile.letter}</span>
-      <span class="point-value">{tile.pointValue}</span>
-    {/if}
-  </div>
-  <div class="corner top-right">
-    {#if tile.completelyCovered}
-      ?
-    {:else}
-      <span class="letter">{tile.letter}</span>
-      <span class="point-value">{tile.pointValue}</span>
-    {/if}
-  </div>
-  <div class="corner bottom-left">
-    {#if tile.completelyCovered}
-      ?
-    {:else}
-      <span class="letter">{tile.letter}</span>
-      <span class="point-value">{tile.pointValue}</span>
-    {/if}
-  </div>
-  <div class="corner bottom-right">
-    {#if tile.completelyCovered}
-      ?
-    {:else}
-      <span class="letter">{tile.letter}</span>
-      <span class="point-value">{tile.pointValue}</span>
-    {/if}
-  </div>
+  <div class="corner top-left">{tile.completelyCovered ? '?' : tile.letter}</div>
+  <div class="corner top-right">{tile.completelyCovered ? '?' : tile.letter}</div>
+  <div class="corner bottom-left">{tile.completelyCovered ? '?' : tile.letter}</div>
+  <div class="corner bottom-right">{tile.completelyCovered ? '?' : tile.letter}</div>
 </div>
 
 <style>
@@ -194,18 +166,6 @@
     justify-content: center;
     align-items: center;
     font-weight: bold;
-    flex-direction: row;
-    gap: 2px;
-  }
-
-  .letter {
-    font-size: 16px;
-  }
-
-  .point-value {
-    font-size: 12px;
-    margin-top: 4px;
-    color: #8C8E98;
   }
 
   .top-left {

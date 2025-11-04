@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { game, submitWord, clearSelection, reorderTiles, removeTileFromWord, getCurrentWordScore, getCurrentWordLengthScore, getCurrentWordLetterScore, toggleSwapMode } from '../lib/state.svelte'
+  import { game, submitWord, clearSelection, reorderTiles, removeTileFromWord, getCurrentWordScore, toggleSwapMode } from '../lib/state.svelte'
   import { dndzone } from 'svelte-dnd-action'
   import WordTile from './WordTile.svelte'
   import type { Tile } from '../types/game'
@@ -55,9 +55,7 @@
     </div>
     
     {#if game.currentWord.length > 0}
-      <div class="potential-score">
-        {getCurrentWordLengthScore()} × {getCurrentWordLetterScore()} = {getCurrentWordScore()}
-      </div>
+      <div class="potential-score">+{getCurrentWordScore()}</div>
     {/if}
   </div>
   

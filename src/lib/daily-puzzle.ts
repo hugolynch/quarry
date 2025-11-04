@@ -299,13 +299,6 @@ export function generateDailyPuzzle(seed: number): { layers: Layer[]; swapPool: 
   
   // Use the same tile bag as regular game
   const TILE_BAG = "AAAAAAAAABBCCDDDDEEEEEEEEEEEEFFGGGHHIIIIIIIIIJKLLLLMMNNNNNNOOOOOOOOPPQRRRRRRSSSSTTTTTTUUUUVVWWXYYZ**".split('')
-
-  // Scrabble-like letter point values (same as main game)
-  const LETTER_POINTS: { [key: string]: number } = {
-    'A': 1, 'B': 3, 'C': 3, 'D': 2, 'E': 1, 'F': 4, 'G': 2, 'H': 4, 'I': 1, 'J': 8,
-    'K': 5, 'L': 1, 'M': 3, 'N': 1, 'O': 1, 'P': 3, 'Q': 10, 'R': 1, 'S': 1, 'T': 1,
-    'U': 1, 'V': 4, 'W': 4, 'X': 8, 'Y': 4, 'Z': 10, '*': 0
-  }
   
   // Create layers
   const layers: Layer[] = [
@@ -354,8 +347,7 @@ export function generateDailyPuzzle(seed: number): { layers: Layer[]; swapPool: 
           selectable: z === 0,
           layer: z,
           position: { x, y },
-          completelyCovered: z > 0, // Middle and bottom layers start completely covered
-          pointValue: LETTER_POINTS[letter] || 0
+          completelyCovered: z > 0 // Middle and bottom layers start completely covered
         }
 
         layer.tiles.push(tile)

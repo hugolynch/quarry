@@ -5,13 +5,6 @@ import { SeededRandom } from './daily-puzzle'
 // Generate tile bag with Scrabble distribution
 const TILE_BAG = "AAAAAAAAABBCCDDDDEEEEEEEEEEEEFFGGGHHIIIIIIIIIJKLLLLMMNNNNNNOOOOOOOOPPQRRRRRRSSSSTTTTTTUUUUVVWWXYYZ**".split('')
 
-// Scrabble-like letter point values
-const LETTER_POINTS: { [key: string]: number } = {
-  'A': 1, 'B': 3, 'C': 3, 'D': 2, 'E': 1, 'F': 4, 'G': 2, 'H': 4, 'I': 1, 'J': 8,
-  'K': 5, 'L': 1, 'M': 3, 'N': 1, 'O': 1, 'P': 3, 'Q': 10, 'R': 1, 'S': 1, 'T': 1,
-  'U': 1, 'V': 4, 'W': 4, 'X': 8, 'Y': 4, 'Z': 10, '*': 0
-}
-
 export const game = $state<GameState>({
   currentWord: '',
   selectedTiles: [],
@@ -183,8 +176,7 @@ function generateLayers(): Layer[] {
           selectable: z === 0, // Only top layer is initially selectable
           layer: z,
           position: { x, y },
-          completelyCovered: z > 0 && !(z === 0 || (game.gameMode === 'pyramid' && z > 0)), // Completely covered if not visible
-          pointValue: LETTER_POINTS[letter] || 0
+          completelyCovered: z > 0 && !(z === 0 || (game.gameMode === 'pyramid' && z > 0)) // Completely covered if not visible
         }
 
         layer.tiles.push(tile)
@@ -520,13 +512,13 @@ function generateWildcardPermutations(word: string): string[] {
   return permutations
 }
 
-// Calculate word score using length × word score formula
+// Calculate word score using custom scoring values
 function calculateWordScore(word: string): number {
   // Exclude wildcard tiles (*) from word length for scoring
   const length = word.replace(/\*/g, '').length
   
-  // Custom scoring values based on word length (length score)
-  const lengthScores: { [key: number]: number } = {
+  // Custom scoring values based on word length
+  const scores: { [key: number]: number } = {
     1: 0,
     2: 1,
     3: 3,
@@ -553,14 +545,7 @@ function calculateWordScore(word: string): number {
     24: 255
   }
   
-  // Calculate word score (sum of letter point values)
-  const wordScore = word.split('').reduce((sum, letter) => {
-    return sum + (LETTER_POINTS[letter] || 0)
-  }, 0)
-  
-  // Return length score × word score
-  const lengthScore = lengthScores[length] || 0
-  return lengthScore * wordScore
+  return scores[length] || 0
 }
 
 // Reorder tiles in the current word
@@ -611,30 +596,6 @@ export function getCurrentWordScore(): number {
   if (game.selectedTiles.length === 0) return 0
   const currentWord = game.selectedTiles.map(tile => tile.letter).join('')
   return calculateWordScore(currentWord.toUpperCase())
-}
-
-// Get length score for current word
-export function getCurrentWordLengthScore(): number {
-  if (game.selectedTiles.length === 0) return 0
-  const currentWord = game.selectedTiles.map(tile => tile.letter).join('')
-  const length = currentWord.replace(/\*/g, '').length
-  
-  const lengthScores: { [key: number]: number } = {
-    1: 0, 2: 1, 3: 3, 4: 5, 5: 8, 6: 12, 7: 17, 8: 23, 9: 30, 10: 38,
-    11: 47, 12: 57, 13: 68, 14: 80, 15: 93, 16: 107, 17: 122, 18: 138,
-    19: 155, 20: 173, 21: 192, 22: 212, 23: 233, 24: 255
-  }
-  
-  return lengthScores[length] || 0
-}
-
-// Get word score (sum of letter values) for current word
-export function getCurrentWordLetterScore(): number {
-  if (game.selectedTiles.length === 0) return 0
-  const currentWord = game.selectedTiles.map(tile => tile.letter).join('')
-  return currentWord.split('').reduce((sum, letter) => {
-    return sum + (LETTER_POINTS[letter] || 0)
-  }, 0)
 }
 
 // Toggle swap mode
@@ -688,9 +649,8 @@ export function swapTile(tile: Tile) {
   
   const newLetter = currentSwapPool.splice(randomIndex, 1)[0]
   
-  // Update the tile's letter and point value
+  // Update the tile's letter
   tile.letter = newLetter
-  tile.pointValue = LETTER_POINTS[newLetter] || 0
   
   // Decrease swap count
   game.swapsRemaining--
