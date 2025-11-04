@@ -32,9 +32,7 @@
     attempts: 0,
     longestWordLength: 0,
     longestWord: '',
-    allWordsFound: [] as string[],
-    bestWord: '',
-    bestWordScore: 0
+    allWordsFound: [] as string[]
   })
 
   // Share button state
@@ -100,8 +98,6 @@
         game.gameOver = completionData.gameOver || true
         dailyData.longestWordLength = completionData.longestWordLength || 0
         dailyData.longestWord = completionData.longestWord || ''
-        dailyData.bestWord = completionData.bestWord || ''
-        dailyData.bestWordScore = completionData.bestWordScore || 0
         
         // Generate the puzzle layout for display (but don't make it playable)
         const puzzle = generateDailyPuzzle(dailyData.seed)
@@ -231,12 +227,6 @@
           dailyData.allWordsFound.push(word)
         }
       })
-      
-      // Update best word across all attempts
-      if (game.bestWordScore > dailyData.bestWordScore) {
-        dailyData.bestWord = game.bestWord
-        dailyData.bestWordScore = game.bestWordScore
-      }
     }
   }
 
@@ -336,15 +326,14 @@
 
   // Share daily puzzle stats
   async function shareStats() {
-    const statsText = 
+    const statsText =
 `Quarry Daily Puzzle
 ${formatDate(dailyData.date)}
     
 First Score: ${dailyData.firstScore}
 Best Score: ${dailyData.bestScore}
-Longest Word: ${dailyData.longestWordLength} letters
-Best Word Score: ${dailyData.bestWordScore} points
-Attempts: ${dailyData.attempts}`
+Attempts: ${dailyData.attempts}
+Longest Word: ${dailyData.longestWordLength} letters`
 
     try {
       await navigator.clipboard.writeText(statsText)
@@ -379,11 +368,9 @@ Attempts: ${dailyData.attempts}`
             <div class="words-title">Words found this attempt</div>
             <div class="words-list">
               {#each game.usedWords as wordData (wordData.word)}
-                <span class="word-pill" class:best-word-pill={wordData.word === dailyData.bestWord && wordData.score === dailyData.bestWordScore}>
+                <span class="word-pill">
                   {#if wordData.word === dailyData.longestWord}
                     {wordData.word} ({wordData.score}) ★
-                  {:else if wordData.word === dailyData.bestWord && wordData.score === dailyData.bestWordScore}
-                    {wordData.word} ({wordData.score}) 💎
                   {:else}
                     {wordData.word} ({wordData.score})
                   {/if}
@@ -417,16 +404,6 @@ Attempts: ${dailyData.attempts}`
             <span class="stat-value">
               {#if dailyData.longestWord}
                 {dailyData.longestWord}
-              {:else}
-                <span class="no-word">No words yet</span>
-              {/if}
-            </span>
-          </div>
-          <div class="stat-line">
-            <span class="stat-label">Best Word</span>
-            <span class="stat-value">
-              {#if dailyData.bestWord}
-                {dailyData.bestWord} ({dailyData.bestWordScore})
               {:else}
                 <span class="no-word">No words yet</span>
               {/if}

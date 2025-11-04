@@ -12,8 +12,6 @@ export interface DailyPuzzleData {
   longestWordLength: number; // Length of longest word submitted
   longestWord: string;   // Actual longest word submitted
   allWordsFound: string[]; // All unique words found across all attempts
-  bestWord: string;      // Highest scoring word submitted
-  bestWordScore: number; // Score of the best word
 }
 
 // Generate a consistent seed based on date
@@ -55,9 +53,7 @@ export function getDailyPuzzleDataForDate(date: string): DailyPuzzleData | null 
         attempts: parsed.attempts || 0,
         longestWordLength: parsed.longestWordLength || 0,
         longestWord: parsed.longestWord || '',
-        allWordsFound: parsed.allWordsFound || [],
-        bestWord: parsed.bestWord || '',
-        bestWordScore: parsed.bestWordScore || 0
+        allWordsFound: parsed.allWordsFound || []
       }
     } catch (e) {
       console.error('Error parsing saved daily data:', e)
@@ -88,9 +84,7 @@ export function getDailyPuzzleData(): DailyPuzzleData {
         attempts: parsed.attempts || 0,
         longestWordLength: parsed.longestWordLength || 0,
         longestWord: parsed.longestWord || '',
-        allWordsFound: parsed.allWordsFound || [],
-        bestWord: parsed.bestWord || '',
-        bestWordScore: parsed.bestWordScore || 0
+        allWordsFound: parsed.allWordsFound || []
       }
     } catch (error) {
       console.error('Error parsing saved daily puzzle data:', error)
@@ -107,9 +101,7 @@ export function getDailyPuzzleData(): DailyPuzzleData {
     attempts: 0,
     longestWordLength: 0,
     longestWord: '',
-    allWordsFound: [],
-    bestWord: '',
-    bestWordScore: 0
+    allWordsFound: []
   }
 }
 
@@ -136,8 +128,6 @@ export function saveDailyCompletionData(data: DailyPuzzleData, gameState: any): 
     attempts: data.attempts,
     longestWordLength: data.longestWordLength,
     longestWord: data.longestWord,
-    bestWord: data.bestWord,
-    bestWordScore: data.bestWordScore,
     // Save completion-specific game state for banner display
     usedWords: gameState.usedWords,
     finalScore: gameState.finalScore,

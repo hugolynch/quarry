@@ -37,8 +37,6 @@ export type GameState = {
   showEndGameConfirmation: boolean
   isDailyPuzzle: boolean
   gameMode: 'main' | 'mini' | 'pyramid'
-  bestWord: string
-  bestWordScore: number
 }
 
 export type TileState = 'available' | 'selected' | 'unavailable' | 'temp-selectable' | 'hidden'
