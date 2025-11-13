@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { game, initializeGame, confirmEndGame, showEndGameConfirmation, cancelEndGame, setDailyPuzzleMode, setGameMode } from './lib/state.svelte'
+  import { game, initializeGame, confirmEndGame, showEndGameConfirmation, cancelEndGame, setDailyPuzzleMode, setGameMode, getDailyPuzzleEndGameCallback } from './lib/state.svelte'
   import { initializeFullscreen, onFullscreenChange, getFullscreenState, enterFullscreenIfPWA } from './lib/fullscreen'
   import Board from './components/Board.svelte'
   import MiniBoard from './components/MiniBoard.svelte'
@@ -278,8 +278,8 @@
   <!-- Install Prompt -->
   <InstallPrompt />
 
-  <!-- Confirmation Dialog -->
-  {#if game.showEndGameConfirmation}
+  <!-- Confirmation Dialog (only show for non-daily puzzle pages) -->
+  {#if game.showEndGameConfirmation && currentPage !== 'daily'}
     <div
       class="confirmation-overlay"
       onclick={cancelEndGame}
@@ -303,7 +303,17 @@
           <button onclick={cancelEndGame} class="cancel-button">
             Cancel
           </button>
-          <button onclick={confirmEndGame} class="confirm-button">
+          <button onclick={() => {
+            // Use Daily Puzzle callback if in daily puzzle mode, otherwise use regular confirmEndGame
+            const dailyCallback = getDailyPuzzleEndGameCallback()
+            if (game.isDailyPuzzle && dailyCallback) {
+              console.log('[App] Using Daily Puzzle callback')
+              dailyCallback()
+            } else {
+              console.log('[App] Using regular confirmEndGame')
+              confirmEndGame()
+            }
+          }} class="confirm-button">
             End Game
           </button>
         </div>

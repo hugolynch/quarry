@@ -102,6 +102,11 @@ export function setDailyPuzzleEndGameCallback(callback: (() => void) | null) {
   dailyPuzzleEndGameCallback = callback
 }
 
+// Get callback for Daily Puzzle end game
+export function getDailyPuzzleEndGameCallback(): (() => void) | null {
+  return dailyPuzzleEndGameCallback
+}
+
 // Initialize game
 export function initializeGame() {
   // Clear any existing feedback timeout
@@ -792,7 +797,12 @@ export function cancelEndGame() {
 
 // Confirm and end the game
 export function confirmEndGame() {
-  if (game.gameOver) return
+  console.log('[confirmEndGame] Called, current gameOver:', game.gameOver)
+  console.trace('[confirmEndGame] Call stack:')
+  if (game.gameOver) {
+    console.log('[confirmEndGame] Already game over, returning early')
+    return
+  }
   
   // Count all remaining tiles (visible and hidden)
   const remainingTiles: Tile[] = []
@@ -801,6 +811,8 @@ export function confirmEndGame() {
       remainingTiles.push(tile)
     }
   }
+  
+  console.log('[confirmEndGame] Remaining tiles:', remainingTiles.length, 'Total score:', game.totalScore)
   
   // Calculate penalty (3 points per remaining tile)
   game.penaltyScore = remainingTiles.length * 3
@@ -811,6 +823,14 @@ export function confirmEndGame() {
   // Set game over
   game.gameOver = true
   game.showEndGameConfirmation = false
+  
+  console.log('[confirmEndGame] After setting game over:', {
+    gameOver: game.gameOver,
+    finalScore: game.finalScore,
+    penaltyScore: game.penaltyScore,
+    usedWords: game.usedWords.length,
+    showEndGameConfirmation: game.showEndGameConfirmation
+  })
   
   // Clear current selection
   clearSelection()

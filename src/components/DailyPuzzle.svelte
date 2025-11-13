@@ -39,6 +39,7 @@
   let shareButtonText = $state('Share')
 
   onMount(() => {
+    console.log('[DailyPuzzle] Component mounted')
     // Set Daily Puzzle mode
     setDailyPuzzleMode(true)
     
@@ -49,6 +50,14 @@
     ;(window as any).dailyPuzzleCompleted = dailyData.isCompleted
     
     initializeDailyPuzzle()
+    
+    console.log('[DailyPuzzle] After initialization:', {
+      isCompleted: dailyData.isCompleted,
+      gameOver: game.gameOver,
+      usedWords: game.usedWords.length,
+      finalScore: game.finalScore,
+      layersLength: game.layers.length
+    })
   })
 
   // Auto-save game state whenever it changes
@@ -71,6 +80,19 @@
     if (game.usedWords.length > 0) {
       updateAllWordsFound()
     }
+  })
+
+  // Debug: Track banner condition changes
+  $effect(() => {
+    const shouldShow = dailyData.isCompleted && game.gameOver
+    console.log('[DailyPuzzle] Banner condition check:', {
+      isCompleted: dailyData.isCompleted,
+      gameOver: game.gameOver,
+      shouldShow,
+      usedWords: game.usedWords.length,
+      finalScore: game.finalScore,
+      penaltyScore: game.penaltyScore
+    })
   })
 
   function initializeDailyPuzzle() {
@@ -232,8 +254,25 @@
 
   // Handle daily puzzle end game
   function handleDailyEndGame() {
+    console.log('[DailyPuzzle] handleDailyEndGame called')
+    console.log('[DailyPuzzle] Before confirmEndGame:', {
+      gameOver: game.gameOver,
+      finalScore: game.finalScore,
+      penaltyScore: game.penaltyScore,
+      usedWords: game.usedWords.length,
+      isCompleted: dailyData.isCompleted
+    })
+    
     // Call the regular confirmEndGame function
     confirmEndGame()
+    
+    console.log('[DailyPuzzle] After confirmEndGame:', {
+      gameOver: game.gameOver,
+      finalScore: game.finalScore,
+      penaltyScore: game.penaltyScore,
+      usedWords: game.usedWords.length,
+      isCompleted: dailyData.isCompleted
+    })
     
     // Update local data first
     dailyData.isCompleted = true
@@ -264,11 +303,42 @@
     // Save the updated data to localStorage
     saveDailyProgress(dailyData)
     
-    // Save completion data for banner display
+    // Save completion data for banner display (before clearing game state)
     saveDailyCompletionData(dailyData, game)
+    
+    // Ensure layers are preserved for display (regenerate if needed)
+    if (game.layers.length === 0) {
+      console.log('[DailyPuzzle] Regenerating layers (layers.length was 0)')
+      const puzzle = generateDailyPuzzle(dailyData.seed)
+      game.layers = puzzle.layers
+      
+      // Ensure all tiles have the completelyCovered property
+      game.layers.forEach(layer => {
+        layer.tiles.forEach(tile => {
+          if (tile.completelyCovered === undefined) {
+            tile.completelyCovered = !tile.visible
+          }
+        })
+      })
+    }
     
     // Clear the saved game state since puzzle is completed
     clearDailyGameState()
+    
+    // Ensure game state is preserved for banner display
+    // The game state (usedWords, finalScore, penaltyScore) should already be set by confirmEndGame()
+    // but we ensure gameOver is true and layers are present for proper display
+    game.gameOver = true
+    
+    console.log('[DailyPuzzle] Final state after handleDailyEndGame:', {
+      gameOver: game.gameOver,
+      finalScore: game.finalScore,
+      penaltyScore: game.penaltyScore,
+      usedWords: game.usedWords.length,
+      isCompleted: dailyData.isCompleted,
+      layersLength: game.layers.length,
+      bannerShouldShow: dailyData.isCompleted && game.gameOver
+    })
   }
 
   // Reset daily puzzle for replay
@@ -359,7 +429,8 @@ Longest Word: ${dailyData.longestWordLength} letters`
   </header>
 
   <!-- Completion Status -->
-  {#if dailyData.isCompleted}
+  {#if dailyData.isCompleted && game.gameOver}
+    {@const bannerDebug = console.log('[DailyPuzzle] Banner rendering - condition met:', { isCompleted: dailyData.isCompleted, gameOver: game.gameOver, usedWords: game.usedWords.length, finalScore: game.finalScore }) || true}
     <div class="completion-banner success">
       <div class="completion-content">
         <div class="completion-title">Daily puzzle completed!</div>
@@ -441,6 +512,7 @@ Longest Word: ${dailyData.longestWordLength} letters`
 
   <!-- Game Board -->
   {#if !game.gameOver}
+    {@const gameBoardDebug = console.log('[DailyPuzzle] Game board rendering - gameOver is false') || true}
     <div class="game-page">
       <Board />
       <WordArea />
@@ -487,7 +559,10 @@ Longest Word: ${dailyData.longestWordLength} letters`
           <button onclick={cancelEndGame} class="cancel-button">
             Cancel
           </button>
-          <button onclick={handleDailyEndGame} class="confirm-button">
+          <button onclick={() => {
+            console.log('[DailyPuzzle] Modal button clicked - calling handleDailyEndGame')
+            handleDailyEndGame()
+          }} class="confirm-button">
             End Puzzle
           </button>
         </div>
