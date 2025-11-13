@@ -5,6 +5,29 @@ import { SeededRandom } from './daily-puzzle'
 // Generate tile bag with Scrabble distribution
 const TILE_BAG = "AAAAAAAAABBCCDDDDEEEEEEEEEEEEFFGGGHHIIIIIIIIIJKLLLLMMNNNNNNOOOOOOOOPPQRRRRRRSSSSTTTTTTUUUUVVWWXYYZ**".split('')
 
+// Get Scrabble letter point value
+export function getScrabbleLetterValue(letter: string): number {
+  const upperLetter = letter.toUpperCase()
+  if (upperLetter === '*') return 0 // Wildcard cannot be bonus
+  
+  // 1 point: A, E, I, O, U, L, N, S, T, R
+  if ('AEIOULNSTR'.includes(upperLetter)) return 1
+  // 2 points: D, G
+  if ('DG'.includes(upperLetter)) return 2
+  // 3 points: B, C, M, P
+  if ('BCMP'.includes(upperLetter)) return 3
+  // 4 points: F, H, V, W, Y
+  if ('FHVWY'.includes(upperLetter)) return 4
+  // 5 points: K
+  if (upperLetter === 'K') return 5
+  // 8 points: J, X
+  if ('JX'.includes(upperLetter)) return 8
+  // 10 points: Q, Z
+  if ('QZ'.includes(upperLetter)) return 10
+  
+  return 0
+}
+
 export const game = $state<GameState>({
   currentWord: '',
   selectedTiles: [],
@@ -176,7 +199,8 @@ function generateLayers(): Layer[] {
           selectable: z === 0, // Only top layer is initially selectable
           layer: z,
           position: { x, y },
-          completelyCovered: z > 0 && !(z === 0 || (game.gameMode === 'pyramid' && z > 0)) // Completely covered if not visible
+          completelyCovered: z > 0 && !(z === 0 || (game.gameMode === 'pyramid' && z > 0)), // Completely covered if not visible
+          isBonus: false
         }
 
         layer.tiles.push(tile)
@@ -196,7 +220,44 @@ function generateLayers(): Layer[] {
 
   console.log('Swap pool created with', swapPool.length, 'tiles:', swapPool.slice(0, 10), '...')
   
+  // Assign bonus tiles to layers
+  assignBonusTiles(layers)
+  
   return layers
+}
+
+// Assign bonus tiles to layers using weighted selection based on Scrabble values
+export function assignBonusTiles(layers: Layer[], rng?: SeededRandom): void {
+  layers.forEach((layer) => {
+    // Flip a coin (50/50 chance) to decide if this layer has a bonus tile
+    const hasBonus = rng ? rng.next() < 0.5 : Math.random() < 0.5
+    
+    if (!hasBonus) return
+    
+    // Create weighted bag: for each non-wildcard tile, add (Scrabble value) copies
+    const weightedBag: Tile[] = []
+    layer.tiles.forEach((tile) => {
+      if (tile.letter !== '*') {
+        const value = getScrabbleLetterValue(tile.letter)
+        // Add this tile to the bag 'value' times
+        for (let i = 0; i < value; i++) {
+          weightedBag.push(tile)
+        }
+      }
+    })
+    
+    // If no valid tiles (all wildcards), skip this layer
+    if (weightedBag.length === 0) return
+    
+    // Randomly select one tile from weighted bag
+    const randomIndex = rng 
+      ? Math.floor(rng.next() * weightedBag.length)
+      : Math.floor(Math.random() * weightedBag.length)
+    const selectedTile = weightedBag[randomIndex]
+    
+    // Mark selected tile as bonus
+    selectedTile.isBonus = true
+  })
 }
 
 // Check if a tile is selectable (all parent tiles must be removed)
@@ -414,9 +475,9 @@ export function submitWord() {
   const isValidWord = possibleWords.some(word => game.wordList.has(word))
 
   if (isValidWord) {
-    const wordScore = calculateWordScore(currentWord.toUpperCase())
-    game.totalScore += wordScore
-    game.usedWords.push({ word: currentWord.toUpperCase(), score: wordScore })
+    const scoreResult = calculateWordScore(game.selectedTiles)
+    game.totalScore += scoreResult.totalScore
+    game.usedWords.push({ word: currentWord.toUpperCase(), score: scoreResult.totalScore })
     setFeedback(`"${currentWord}" is a valid word!`, 'green')
 
     // Remove selected tiles
@@ -512,8 +573,11 @@ function generateWildcardPermutations(word: string): string[] {
   return permutations
 }
 
-// Calculate word score using custom scoring values
-function calculateWordScore(word: string): number {
+// Calculate word score using custom scoring values with bonus multipliers
+function calculateWordScore(tiles: Tile[]): { baseScore: number; bonusCount: number; totalScore: number } {
+  // Build word from tiles
+  const word = tiles.map(tile => tile.letter).join('')
+  
   // Exclude wildcard tiles (*) from word length for scoring
   const length = word.replace(/\*/g, '').length
   
@@ -545,7 +609,15 @@ function calculateWordScore(word: string): number {
     24: 255
   }
   
-  return scores[length] || 0
+  const baseScore = scores[length] || 0
+  
+  // Count bonus tiles in the word
+  const bonusCount = tiles.filter(tile => tile.isBonus).length
+  
+  // Apply multiplier: baseScore * (1 + bonusCount)
+  const totalScore = baseScore * (1 + bonusCount)
+  
+  return { baseScore, bonusCount, totalScore }
 }
 
 // Reorder tiles in the current word
@@ -592,10 +664,9 @@ export function removeTileFromWord(index: number) {
 }
 
 // Get potential score for current word
-export function getCurrentWordScore(): number {
-  if (game.selectedTiles.length === 0) return 0
-  const currentWord = game.selectedTiles.map(tile => tile.letter).join('')
-  return calculateWordScore(currentWord.toUpperCase())
+export function getCurrentWordScore(): { baseScore: number; bonusCount: number; totalScore: number } {
+  if (game.selectedTiles.length === 0) return { baseScore: 0, bonusCount: 0, totalScore: 0 }
+  return calculateWordScore(game.selectedTiles)
 }
 
 // Toggle swap mode
@@ -648,6 +719,9 @@ export function swapTile(tile: Tile) {
   }
   
   const newLetter = currentSwapPool.splice(randomIndex, 1)[0]
+  
+  // Remove bonus if tile had one (bonus leaves with the old tile)
+  tile.isBonus = false
   
   // Update the tile's letter
   tile.letter = newLetter

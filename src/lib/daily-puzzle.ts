@@ -1,6 +1,7 @@
 // Daily puzzle generation and management
 
 import type { Tile, Layer, Coordinate } from '../types/game'
+import { assignBonusTiles } from './state.svelte'
 
 export interface DailyPuzzleData {
   date: string;           // YYYY-MM-DD format
@@ -164,7 +165,8 @@ export function saveDailyGameState(gameState: any): void {
         ...tile,
         selected: tile.selected,
         visible: tile.visible,
-        selectable: tile.selectable
+        selectable: tile.selectable,
+        isBonus: tile.isBonus ?? false
       }))
     })),
     feedback: gameState.feedback,
@@ -347,7 +349,8 @@ export function generateDailyPuzzle(seed: number): { layers: Layer[]; swapPool: 
           selectable: z === 0,
           layer: z,
           position: { x, y },
-          completelyCovered: z > 0 // Middle and bottom layers start completely covered
+          completelyCovered: z > 0, // Middle and bottom layers start completely covered
+          isBonus: false
         }
 
         layer.tiles.push(tile)
@@ -366,6 +369,9 @@ export function generateDailyPuzzle(seed: number): { layers: Layer[]; swapPool: 
   }
 
   console.log('Daily puzzle swap pool created with', swapPool.length, 'tiles:', swapPool.slice(0, 10), '...')
+  
+  // Assign bonus tiles to layers using seeded RNG
+  assignBonusTiles(layers, rng)
   
   return {
     layers,

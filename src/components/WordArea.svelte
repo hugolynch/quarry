@@ -55,7 +55,17 @@
     </div>
     
     {#if game.currentWord.length > 0}
-      <div class="potential-score">+{getCurrentWordScore()}</div>
+      {@const scoreInfo = getCurrentWordScore()}
+      <div class="potential-score">
+        +{scoreInfo.totalScore}
+        {#if scoreInfo.bonusCount > 0}
+          <span class="bonus-indicator" aria-label="{scoreInfo.bonusCount} bonus tile{scoreInfo.bonusCount > 1 ? 's' : ''}">
+            {#each Array(scoreInfo.bonusCount) as _}
+              ✶
+            {/each}
+          </span>
+        {/if}
+      </div>
     {/if}
   </div>
   
@@ -191,12 +201,19 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 4px;
     min-width: 40px;
     height: 40px;
     border-radius: 4px;
     font-size: 18px;
     font-weight: 700;
     color: #579E47;
+  }
+
+  .bonus-indicator {
+    font-size: 14px;
+    color: #B48CF6;
+    line-height: 1;
   }
 
   .button-icon {

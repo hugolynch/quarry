@@ -34,6 +34,11 @@
   <div class="corner top-right">{tile.completelyCovered ? '?' : tile.letter}</div>
   <div class="corner bottom-left">{tile.completelyCovered ? '?' : tile.letter}</div>
   <div class="corner bottom-right">{tile.completelyCovered ? '?' : tile.letter}</div>
+  {#if tile.isBonus && !tile.completelyCovered}
+    <div class="bonus-star">
+      <img src="/mult.svg" alt="Bonus tile" />
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -186,5 +191,25 @@
   .bottom-right {
     bottom: 0;
     right: 0;
+  }
+
+  .bonus-star {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .bonus-star img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
   }
 </style>
