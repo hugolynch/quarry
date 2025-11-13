@@ -187,8 +187,9 @@
     <h3>1. Building Words</h3>
     <ul>
       <li><strong>Click tiles</strong> to add letters to your current word</li>
-      <li><strong>Click selected tiles again</strong> to remove them</li>
+      <li><strong>Click selected tiles again</strong> (in the word area) to remove them from your word</li>
       <li><strong>Click "Submit"</strong> when you're ready to submit your word</li>
+      <li><strong>Real-time feedback</strong>: As you build your word, you'll see the potential score update in real-time. The score turns <span style="color: #579E47; font-weight: bold;">green</span> for valid words and <span style="color: #dc3545; font-weight: bold;">red</span> for invalid words</li>
     </ul>
 
     <h3>2. Tile States</h3>
@@ -416,13 +417,25 @@
     <h3>Special Tiles</h3>
     <ul>
       <li><strong>Wildcards (*)</strong>: Can be any letter, but don't count towards the word length</li>
+      <li><strong>Bonus Tiles</strong>: Tiles marked with a <span class="bonus-tile">✶</span> that multiply your word score</li>
+    </ul>
+
+    <h3>Bonus Tiles</h3>
+    <p>Some tiles on the board are marked as <strong>bonus tiles</strong> (marked by a <span class="bonus-tile">✶</span>). When you include bonus tiles in a word:</p>
+    <ul>
+      <li>Each bonus tile multiplies your word's base score</li>
+      <li><strong>Formula</strong>: Final Score = Base Score × (1 + Number of Bonus Tiles)</li>
+      <li>For example: A 5-letter word (8 points) with 2 bonus tiles = 8 × (1 + 2) = 24 points</li>
+      <li>Bonus tiles appear randomly on the board (maximum of 1 per layer)</li>
+      <li>You'll see a <span class="bonus-tile">✶</span> indicator next to your score when bonus tiles are included in your current word</li>
     </ul>
 
     <h3>End Game</h3>
     <ul>
       <li><strong>Final Score</strong> = Total Word Score - Penalty</li>
       <li><strong>Penalty</strong> = 3 points per leftover tile</li>
-      <li>Game ends when the board is cleared or no more words can be formed</li>
+      <li>Game ends automatically when all tiles are cleared, or you can manually end the game using the "Done" button</li>
+      <li>When you manually end the game, you'll receive a penalty for any remaining tiles</li>
     </ul>
 
     <h2>Game Modes</h2>
@@ -439,6 +452,7 @@
       <li>Same puzzle for everyone. Resets each day</li>
       <li>Can be replayed multiple times. Play the same puzzle again to improve your score</li>
       <li>The board is deterministic (including tile swaps). Replaying the puzzle again means you'll get the same board and same tile swaps</li>
+      <li>Your stats are tracked: first score, best score, number of attempts, and longest word found</li>
     </ul>
 
     <h2>Strategy Tips</h2>
@@ -460,6 +474,14 @@
     <ul>
       <li>Every unused tile costs you 3 points. Sometimes it's better to form a shorter word than leave tiles unused</li>
       <li>Look for short 2-3 letter words to clear remaining tiles</li>
+    </ul>
+
+    <h3>Replay</h3>
+    <p>When replaying a daily puzzle (after your first attempt), you have access to helpful tools:</p>
+    <ul>
+      <li><strong>Board Map</strong>: Click the "Board Map" button (with the eye icon) to see the complete board layout as plain text. This shows all layers with letters visible, making it easier to plan your strategy</li>
+      <li><strong>Upcoming Tile Swaps</strong>: When you enter swap mode, you'll see the next 3 letters that will appear when you swap tiles. This helps you decide which tiles to swap and when</li>
+      <li>Use these tools to optimize your strategy and improve your score on subsequent attempts</li>
     </ul>
 
     <h2>Need Help?</h2>
@@ -914,6 +936,11 @@
     width: 16px;
     height: 16px;
     flex-shrink: 0;
+  }
+
+  .bonus-tile {
+    color: #9d4edd;
+    font-weight: bold;
   }
 
 
