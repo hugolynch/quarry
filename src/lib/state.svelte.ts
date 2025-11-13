@@ -51,6 +51,13 @@ export const game = $state<GameState>({
 let originalTileBag: string[] = []
 let swapPool: string[] = []
 
+// Undo history for daily puzzle
+type UndoAction = 
+  | { type: 'word'; tiles: Tile[]; score: number; word: string; tilePositions: Array<{ layer: number; index: number }> }
+  | { type: 'swap'; tileId: string; oldLetter: string; newLetter: string; swapPoolIndex: number; swapPoolLetter: string; wasBonus: boolean }
+
+let undoHistory: UndoAction[] = []
+
 // Store timeout reference for clearing feedback
 let feedbackTimeout: number | null = null
 
@@ -481,9 +488,33 @@ export function submitWord() {
 
   if (isValidWord) {
     const scoreResult = calculateWordScore(game.selectedTiles)
-    game.totalScore += scoreResult.totalScore
-    game.usedWords.push({ word: currentWord.toUpperCase(), score: scoreResult.totalScore })
+    const wordScore = scoreResult.totalScore
+    game.totalScore += wordScore
+    game.usedWords.push({ word: currentWord.toUpperCase(), score: wordScore })
     setFeedback(`"${currentWord}" is a valid word!`, 'green')
+
+    // Record undo action for daily puzzle (before removing tiles)
+    if (game.isDailyPuzzle && (window as any).dailyPuzzleCompleted) {
+      // Store tile positions before removal
+      const tilePositions: Array<{ layer: number; index: number }> = []
+      const tilesToRemove = [...game.selectedTiles] // Copy array
+      
+      tilesToRemove.forEach(tile => {
+        const layer = game.layers[tile.layer]
+        const index = layer.tiles.findIndex(t => t.id === tile.id)
+        if (index !== -1) {
+          tilePositions.push({ layer: tile.layer, index })
+        }
+      })
+      
+      undoHistory.push({
+        type: 'word',
+        tiles: tilesToRemove.map(t => ({ ...t })), // Deep copy tiles
+        score: wordScore,
+        word: currentWord.toUpperCase(),
+        tilePositions
+      })
+    }
 
     // Remove selected tiles
     game.selectedTiles.forEach(tile => {
@@ -736,7 +767,7 @@ export function toggleSwapMode() {
   if (game.swapMode) {
     // Show upcoming letters for daily puzzle mode only if it's been completed before
     if (game.isDailyPuzzle && (window as any).dailyPuzzleCompleted) {
-      const upcomingLetters = getUpcomingSwapLetters(3)
+      const upcomingLetters = getUpcomingSwapLetters(game.swapsRemaining)
       if (upcomingLetters.length > 0) {
         setFeedback(`Click a tile to swap it for a new one. Upcoming letters: ${upcomingLetters.join(', ')}`, 'blue')
       } else {
@@ -775,6 +806,21 @@ export function swapTile(tile: Tile) {
   }
   
   const newLetter = currentSwapPool.splice(randomIndex, 1)[0]
+  const oldLetter = tile.letter
+  const wasBonus = tile.isBonus
+  
+  // Record undo action for daily puzzle (before swapping)
+  if (game.isDailyPuzzle && (window as any).dailyPuzzleCompleted) {
+    undoHistory.push({
+      type: 'swap',
+      tileId: tile.id,
+      oldLetter,
+      newLetter,
+      swapPoolIndex: randomIndex,
+      swapPoolLetter: newLetter,
+      wasBonus
+    })
+  }
   
   // Remove bonus if tile had one (bonus leaves with the old tile)
   tile.isBonus = false
@@ -790,7 +836,7 @@ export function swapTile(tile: Tile) {
   
   // Update feedback with upcoming letters for daily puzzle mode only if it's been completed before
   if (game.isDailyPuzzle && game.swapsRemaining > 0 && (window as any).dailyPuzzleCompleted) {
-    const upcomingLetters = getUpcomingSwapLetters(3)
+    const upcomingLetters = getUpcomingSwapLetters(game.swapsRemaining)
     if (upcomingLetters.length > 0) {
       setFeedback(`Swapped to ${newLetter}! ${game.swapsRemaining} swaps remaining. Upcoming letters: ${upcomingLetters.join(', ')}`, 'green')
     } else {
@@ -891,40 +937,16 @@ export function getUpcomingSwapLetters(count: number = 3): string[] {
     const poolCopy = [...currentSwapPool]
     const upcomingLetters: string[] = []
     
-    // We need to track how many swaps have been made to predict the next ones
-    const totalSwapsMade = 3 - game.swapsRemaining // How many swaps have been used
-    const originalSeed = (window as any).dailyPuzzleSeed
+    // Use the current RNG state directly by cloning it
+    // This ensures we use the exact same RNG state that will be used for actual swaps
+    const tempRng = dailyRng.clone()
     
-    if (originalSeed !== undefined) {
-      // Create a new SeededRandom instance with the original seed
-      const tempRng = new SeededRandom(originalSeed)
-      
-      // Calculate how many RNG calls were made during puzzle generation:
-      // 1. Shuffle: TILE_BAG.length - 1 calls (99 calls)
-      // 2. Tile placement: 16 + 9 + 4 = 29 tiles, each with 1 RNG call = 29 calls
-      // Total: 99 + 29 = 128 calls during puzzle generation
-      const puzzleGenerationCalls = 99 + 29 // shuffle calls + tile placement calls
-      
-      // Advance the RNG to the current state:
-      // 1. All puzzle generation calls
-      // 2. All previous swap calls
-      for (let i = 0; i < puzzleGenerationCalls + totalSwapsMade; i++) {
-        tempRng.next()
-      }
-      
-      // Now get the next few letters that would come up
-      for (let i = 0; i < Math.min(count, poolCopy.length); i++) {
-        const randomIndex = Math.floor(tempRng.next() * poolCopy.length)
-        upcomingLetters.push(poolCopy[randomIndex])
-        poolCopy.splice(randomIndex, 1)
-      }
-    } else {
-      // Fallback: just return random letters from the pool
-      for (let i = 0; i < Math.min(count, poolCopy.length); i++) {
-        const randomIndex = Math.floor(Math.random() * poolCopy.length)
-        upcomingLetters.push(poolCopy[randomIndex])
-        poolCopy.splice(randomIndex, 1)
-      }
+    // Now get the next few letters that would come up
+    // Use the same logic as swapTile: tempRng.next() * poolCopy.length
+    for (let i = 0; i < Math.min(count, poolCopy.length); i++) {
+      const randomIndex = Math.floor(tempRng.next() * poolCopy.length)
+      upcomingLetters.push(poolCopy[randomIndex])
+      poolCopy.splice(randomIndex, 1)
     }
     
     return upcomingLetters
@@ -941,4 +963,135 @@ export function getUpcomingSwapLetters(count: number = 3): string[] {
     
     return upcomingLetters
   }
+}
+
+// Undo last action (only for daily puzzle after completion)
+export function undoLastAction(): boolean {
+  if (!game.isDailyPuzzle || !(window as any).dailyPuzzleCompleted) {
+    return false
+  }
+  
+  if (undoHistory.length === 0) {
+    setFeedback("Nothing to undo", 'black')
+    return false
+  }
+  
+  const lastAction = undoHistory.pop()!
+  
+  if (lastAction.type === 'word') {
+    // Undo word submission: restore tiles to their original positions
+    const { tiles, score, word, tilePositions } = lastAction
+    
+    // Remove from used words
+    const wordIndex = game.usedWords.findIndex(w => w.word === word && w.score === score)
+    if (wordIndex !== -1) {
+      game.usedWords.splice(wordIndex, 1)
+    }
+    
+    // Restore score
+    game.totalScore -= score
+    
+    // Restore tiles to their original positions
+    // Insert in reverse order (highest index first) to maintain correct positions
+    const sortedPositions = tilePositions.map((pos, i) => ({ pos, tile: tiles[i], index: i }))
+      .sort((a, b) => {
+        // Sort by layer first, then by index (descending)
+        if (a.pos.layer !== b.pos.layer) {
+          return b.pos.layer - a.pos.layer
+        }
+        return b.pos.index - a.pos.index
+      })
+    
+    sortedPositions.forEach(({ pos, tile }) => {
+      const targetLayer = game.layers[pos.layer]
+      // Insert tile back at its original position
+      targetLayer.tiles.splice(pos.index, 0, tile)
+    })
+    
+    // Trigger reactivity for layer changes
+    game.layers = [...game.layers]
+    
+    // Update tile states after restoration
+    updateTileStates()
+    
+    // Clear current selection
+    clearSelection()
+    
+    setFeedback(`Undid word "${word}"`, 'blue')
+    return true
+  } else if (lastAction.type === 'swap') {
+    // Undo tile swap: restore original letter
+    const { tileId, oldLetter, newLetter, swapPoolIndex, swapPoolLetter, wasBonus } = lastAction
+    
+    // Find the tile
+    let tile: Tile | null = null
+    for (const layer of game.layers) {
+      const foundTile = layer.tiles.find(t => t.id === tileId)
+      if (foundTile) {
+        tile = foundTile
+        break
+      }
+    }
+    
+    if (tile) {
+      // Restore original letter and bonus status
+      tile.letter = oldLetter
+      tile.isBonus = wasBonus
+      
+      // Restore swap pool (put the letter back at the original position)
+      const currentSwapPool = (window as any).dailySwapPool || swapPool
+      currentSwapPool.splice(swapPoolIndex, 0, swapPoolLetter)
+      
+      // Restore swap count
+      game.swapsRemaining++
+      
+      // For daily puzzle, regenerate RNG to correct state after undo
+      // The RNG state should be: puzzle generation + (3 - game.swapsRemaining) swaps
+      if (game.isDailyPuzzle && (window as any).dailyPuzzleSeed !== undefined) {
+        const originalSeed = (window as any).dailyPuzzleSeed
+        const newRng = new SeededRandom(originalSeed)
+        
+        // Calculate how many RNG calls were made during puzzle generation
+        const puzzleGenerationCalls = 99 + 29 // shuffle calls + tile placement calls
+        
+        // Advance through puzzle generation
+        for (let i = 0; i < puzzleGenerationCalls; i++) {
+          newRng.next()
+        }
+        
+        // Advance through swaps that have been made (current swapsRemaining tells us how many are left)
+        // After undo, swapsRemaining has been incremented, so we need to calculate swaps made before the undo
+        const swapsMade = 3 - game.swapsRemaining
+        for (let i = 0; i < swapsMade; i++) {
+          newRng.next()
+        }
+        
+        // Replace the RNG with the regenerated one
+        ;(window as any).dailyRng = newRng
+      }
+      
+      setFeedback(`Undid swap: restored ${oldLetter}`, 'blue')
+      return true
+    } else {
+      setFeedback("Could not find tile to undo swap", 'red')
+      return false
+    }
+  }
+  
+  return false
+}
+
+// Get undo history (for persistence)
+export function getUndoHistory(): UndoAction[] {
+  return undoHistory
+}
+
+// Set undo history (for restoration)
+export function setUndoHistory(history: UndoAction[]): void {
+  undoHistory = history
+}
+
+// Clear undo history
+export function clearUndoHistory(): void {
+  undoHistory = []
 }

@@ -152,7 +152,7 @@ export function loadDailyCompletionData(date: string): any | null {
 }
 
 // Save daily puzzle game state
-export function saveDailyGameState(gameState: any): void {
+export function saveDailyGameState(gameState: any, undoHistory?: any[]): void {
   const today = getTodayDate()
   const stateData = {
     currentWord: gameState.currentWord,
@@ -177,6 +177,7 @@ export function saveDailyGameState(gameState: any): void {
     finalScore: gameState.finalScore,
     penaltyScore: gameState.penaltyScore,
     showEndGameConfirmation: gameState.showEndGameConfirmation,
+    undoHistory: undoHistory || [],
     timestamp: Date.now()
   }
   localStorage.setItem(`daily-game-${today}`, JSON.stringify(stateData))
@@ -292,6 +293,16 @@ export class SeededRandom {
       ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
     }
     return shuffled
+  }
+
+  // Get current seed state (for cloning/checking)
+  getState(): number {
+    return this.seed
+  }
+
+  // Clone this RNG instance
+  clone(): SeededRandom {
+    return new SeededRandom(this.seed)
   }
 }
 

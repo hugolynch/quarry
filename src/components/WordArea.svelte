@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { game, submitWord, clearSelection, reorderTiles, removeTileFromWord, getCurrentWordScore, isCurrentWordValid, toggleSwapMode } from '../lib/state.svelte'
+  import { onMount } from 'svelte'
+  import { game, submitWord, clearSelection, reorderTiles, removeTileFromWord, getCurrentWordScore, isCurrentWordValid, toggleSwapMode, undoLastAction, getUndoHistory } from '../lib/state.svelte'
   import { dndzone } from 'svelte-dnd-action'
   import WordTile from './WordTile.svelte'
   import type { Tile } from '../types/game'
@@ -13,6 +14,81 @@
   // Reactive derived values for real-time scoring
   let scoreInfo = $derived(getCurrentWordScore())
   let isValid = $derived(isCurrentWordValid())
+  
+  // Check if undo feature should be available (after completing daily puzzle at least once)
+  let showUndoButton = $state(false)
+  
+  // Check the flag whenever game.isDailyPuzzle changes
+  $effect(() => {
+    if (game.isDailyPuzzle) {
+      // Use setTimeout to ensure flag is set after initializeDailyPuzzle runs
+      setTimeout(() => {
+        showUndoButton = !!(window as any).dailyPuzzleCompleted
+      }, 0)
+    } else {
+      showUndoButton = false
+    }
+  })
+  
+  // Also check on mount and periodically to catch flag being set
+  onMount(() => {
+    const checkFlag = () => {
+      if (game.isDailyPuzzle) {
+        showUndoButton = !!(window as any).dailyPuzzleCompleted
+      }
+    }
+    
+    // Check immediately
+    checkFlag()
+    
+    // Check after a short delay to ensure initializeDailyPuzzle has run
+    setTimeout(checkFlag, 100)
+    
+    // Check periodically until flag is set or component unmounts
+    const interval = setInterval(() => {
+      if (game.isDailyPuzzle && !showUndoButton) {
+        checkFlag()
+        // Clear interval once flag is set
+        if (showUndoButton) {
+          clearInterval(interval)
+        }
+      } else {
+        clearInterval(interval)
+      }
+    }, 200)
+    
+    return () => clearInterval(interval)
+  })
+  
+  // Check if undo is available (has actions to undo)
+  // Use $state and $effect to make it reactive to undo history changes
+  let canUndo = $state(false)
+  
+  $effect(() => {
+    if (showUndoButton) {
+      // Check undo history length reactively
+      const historyLength = getUndoHistory().length
+      canUndo = historyLength > 0
+      
+      // Also set up a check that runs periodically to catch when history is restored
+      const checkInterval = setInterval(() => {
+        const newLength = getUndoHistory().length
+        if (newLength !== historyLength) {
+          canUndo = newLength > 0
+          clearInterval(checkInterval)
+        }
+      }, 100)
+      
+      // Clean up interval when showUndoButton changes
+      return () => clearInterval(checkInterval)
+    } else {
+      canUndo = false
+    }
+  })
+  
+  function handleUndo() {
+    undoLastAction()
+  }
 
   function handleKeydown(e: KeyboardEvent) {
     switch (e.key) {
@@ -105,12 +181,6 @@
       </svg>
       Swap ({game.swapsRemaining})
     </button>
-    <button on:click={submitWord} disabled={game.currentWord.length === 0 || game.gameOver}>
-      <svg class="button-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="20,6 9,17 4,12"></polyline>
-      </svg>
-      Submit
-    </button>
     {#if showBoardMapButton && onBoardMapClick}
       <button on:click={onBoardMapClick} disabled={game.gameOver} class="board-map-button">
         <svg class="button-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -120,6 +190,21 @@
         Board Map
       </button>
     {/if}
+    {#if showUndoButton}
+      <button on:click={handleUndo} disabled={!canUndo || game.gameOver} class="undo-button">
+        <svg class="button-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 7v6h6"></path>
+          <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>
+        </svg>
+        Undo
+      </button>
+    {/if}
+    <button on:click={submitWord} disabled={game.currentWord.length === 0 || game.gameOver}>
+      <svg class="button-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20,6 9,17 4,12"></polyline>
+      </svg>
+      Submit
+    </button>
   </div>
   
 </div>

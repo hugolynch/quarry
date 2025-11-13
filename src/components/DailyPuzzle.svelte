@@ -16,7 +16,7 @@
     saveDailyCompletionData,
     loadDailyCompletionData
   } from '../lib/daily-puzzle'
-  import { game, initializeGame, showEndGameConfirmation, cancelEndGame, confirmEndGame, setFeedback, setDailyPuzzleMode, setDailyPuzzleEndGameCallback } from '../lib/state.svelte'
+  import { game, initializeGame, showEndGameConfirmation, cancelEndGame, confirmEndGame, setFeedback, setDailyPuzzleMode, setDailyPuzzleEndGameCallback, getUndoHistory, setUndoHistory, clearUndoHistory } from '../lib/state.svelte'
   import Board from './Board.svelte'
   import WordArea from './WordArea.svelte'
   import Score from './Score.svelte'
@@ -42,20 +42,25 @@
   let showBoardMap = $state(false)
 
   onMount(() => {
-    // Set Daily Puzzle mode
+    // Set Daily Puzzle mode first
     setDailyPuzzleMode(true)
     
     // Register the Daily Puzzle end game callback
     setDailyPuzzleEndGameCallback(handleDailyEndGame)
     
+    // Initialize puzzle (this sets the dailyPuzzleCompleted flag)
     initializeDailyPuzzle()
+    
+    // Force a reactive update by touching game.isDailyPuzzle
+    // This ensures WordArea's $derived values re-evaluate
+    game.isDailyPuzzle = true
   })
 
   // Auto-save game state whenever it changes
   $effect(() => {
     if (game.layers.length > 0) {
       // Only save if we have a puzzle loaded
-      saveDailyGameState(game)
+      saveDailyGameState(game, getUndoHistory())
     }
   })
 
@@ -76,6 +81,10 @@
   function initializeDailyPuzzle() {
     // Get today's puzzle data
     dailyData = getDailyPuzzleData()
+    
+    // Set the completion flag immediately (for undo button visibility)
+    // Check if puzzle has been completed before (for upcoming letters and undo features)
+    ;(window as any).dailyPuzzleCompleted = dailyData.attempts > 0 || dailyData.bestScore > 0
     
     // Load word list if not already loaded
     if (game.wordList.size === 0) {
@@ -116,11 +125,8 @@
         ;(window as any).dailyRng = puzzle.rng
         ;(window as any).dailyPuzzleSeed = dailyData.seed
         
-    // Set the completion flag for upcoming letters display
-    // Check if puzzle has been completed before (for upcoming letters feature)
-    // This should be true if attempts > 0 or bestScore > 0, even if we're replaying
-    ;(window as any).dailyPuzzleCompleted = dailyData.attempts > 0 || dailyData.bestScore > 0
-    return
+        // Flag already set at the start of function
+        return
       } else {
         // If completion data is missing, reset the completion status
         dailyData.isCompleted = false
@@ -157,6 +163,11 @@
       game.penaltyScore = savedState.penaltyScore
       game.showEndGameConfirmation = savedState.showEndGameConfirmation
       
+      // Restore undo history if available
+      if (savedState.undoHistory) {
+        setUndoHistory(savedState.undoHistory)
+      }
+      
       // Restore swap pool and RNG (we need to regenerate them)
       const puzzle = generateDailyPuzzle(dailyData.seed)
       ;(window as any).dailySwapPool = puzzle.swapPool
@@ -187,10 +198,7 @@
       ;(window as any).dailyPuzzleSeed = dailyData.seed
     }
     
-    // Set the completion flag for upcoming letters display
-    // Check if puzzle has been completed before (for upcoming letters feature)
-    // This should be true if attempts > 0 or bestScore > 0, even if we're replaying
-    ;(window as any).dailyPuzzleCompleted = dailyData.attempts > 0 || dailyData.bestScore > 0
+    // Flag already set at the start of function
   }
 
 
@@ -331,6 +339,9 @@
     game.finalScore = 0
     game.penaltyScore = 0
     game.showEndGameConfirmation = false
+
+    // Clear undo history for fresh start
+    clearUndoHistory()
 
     // Generate fresh puzzle
     const puzzle = generateDailyPuzzle(dailyData.seed)
