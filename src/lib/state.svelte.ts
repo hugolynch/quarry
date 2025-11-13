@@ -524,9 +524,21 @@ export function submitWord() {
 
 // Clear current selection
 export function clearSelection() {
+  // Deselect tiles in selectedTiles array
   game.selectedTiles.forEach(tile => {
     tile.selected = false
   })
+  
+  // Also deselect any tiles in layers that might be selected
+  // This is important after restoring from saved state, where tile references might not match
+  game.layers.forEach(layer => {
+    layer.tiles.forEach(tile => {
+      if (tile.selected) {
+        tile.selected = false
+      }
+    })
+  })
+  
   game.selectedTiles = []
   game.currentWord = ''
   
@@ -539,6 +551,16 @@ export function backspace() {
   if (game.selectedTiles.length > 0) {
     const lastTile = game.selectedTiles.pop()!
     lastTile.selected = false
+    
+    // Also deselect the tile in layers if it exists (important after restoring from saved state)
+    // Find the tile in layers by ID to ensure we're updating the correct object
+    game.layers.forEach(layer => {
+      const tileInLayer = layer.tiles.find(t => t.id === lastTile.id)
+      if (tileInLayer) {
+        tileInLayer.selected = false
+      }
+    })
+    
     game.currentWord = game.currentWord.slice(0, -1)
     
     // After removal, check if any temp-selectable tiles should lose their status
@@ -657,6 +679,15 @@ export function removeTileFromWord(index: number) {
   
   const removedTile = game.selectedTiles[index]
   removedTile.selected = false
+  
+  // Also deselect the tile in layers if it exists (important after restoring from saved state)
+  // Find the tile in layers by ID to ensure we're updating the correct object
+  game.layers.forEach(layer => {
+    const tileInLayer = layer.tiles.find(t => t.id === removedTile.id)
+    if (tileInLayer) {
+      tileInLayer.selected = false
+    }
+  })
   
   // Remove from selected tiles
   game.selectedTiles.splice(index, 1)

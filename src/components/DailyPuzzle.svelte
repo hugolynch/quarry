@@ -48,9 +48,6 @@
     // Register the Daily Puzzle end game callback
     setDailyPuzzleEndGameCallback(handleDailyEndGame)
     
-    // Set the completion flag for upcoming letters display
-    ;(window as any).dailyPuzzleCompleted = dailyData.isCompleted
-    
     initializeDailyPuzzle()
   })
 
@@ -118,7 +115,12 @@
         ;(window as any).dailySwapPool = puzzle.swapPool
         ;(window as any).dailyRng = puzzle.rng
         ;(window as any).dailyPuzzleSeed = dailyData.seed
-        return
+        
+    // Set the completion flag for upcoming letters display
+    // Check if puzzle has been completed before (for upcoming letters feature)
+    // This should be true if attempts > 0 or bestScore > 0, even if we're replaying
+    ;(window as any).dailyPuzzleCompleted = dailyData.attempts > 0 || dailyData.bestScore > 0
+    return
       } else {
         // If completion data is missing, reset the completion status
         dailyData.isCompleted = false
@@ -184,6 +186,11 @@
       ;(window as any).dailyRng = puzzle.rng
       ;(window as any).dailyPuzzleSeed = dailyData.seed
     }
+    
+    // Set the completion flag for upcoming letters display
+    // Check if puzzle has been completed before (for upcoming letters feature)
+    // This should be true if attempts > 0 or bestScore > 0, even if we're replaying
+    ;(window as any).dailyPuzzleCompleted = dailyData.attempts > 0 || dailyData.bestScore > 0
   }
 
 
@@ -302,10 +309,11 @@
     // Clear completion data
     localStorage.removeItem(`daily-completion-${dailyData.date}`)
     
-    // Reset completion status to hide banner
-    dailyData.isCompleted = false
+    // Reset completion status to hide banner (but keep stats)
     // Note: We don't reset longestWordLength, longestWord, or allWordsFound
     // as these should persist across replays to maintain cumulative stats
+    // We also keep isCompleted = true to preserve that it's been completed before
+    // (this is needed for the upcoming letters feature)
     
     // Keep the completion flag set to true for upcoming letters display
     ;(window as any).dailyPuzzleCompleted = true
