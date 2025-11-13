@@ -480,7 +480,8 @@
     <p>When replaying a daily puzzle (after your first attempt), you have access to helpful tools:</p>
     <ul>
       <li><strong>Board Map</strong>: Click the "Board Map" button (with the eye icon) to see the complete board layout as plain text. This shows all layers with letters visible, making it easier to plan your strategy</li>
-      <li><strong>Upcoming Tile Swaps</strong>: When you enter swap mode, you'll see the next 3 letters that will appear when you swap tiles. This helps you decide which tiles to swap and when</li>
+      <li><strong>Upcoming Tile Swaps</strong>: When you enter swap mode, you'll see the next letters that will appear when you swap tiles. This helps you decide which tiles to swap and when</li>
+      <li><strong>Undo</strong>: Allows you to reverse your last permanent action (submitting a word or swapping a tile). This is useful for experimenting with different strategies or fixing mistakes</li>
       <li>Use these tools to optimize your strategy and improve your score on subsequent attempts</li>
     </ul>
 
