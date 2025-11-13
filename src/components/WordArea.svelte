@@ -5,8 +5,14 @@
   import type { Tile } from '../types/game'
   
   // Props for daily puzzle board map
-  export let showBoardMapButton: boolean = false
-  export let onBoardMapClick: (() => void) | null = null
+  let { showBoardMapButton = false, onBoardMapClick = null }: {
+    showBoardMapButton?: boolean;
+    onBoardMapClick?: (() => void) | null;
+  } = $props()
+  
+  // Reactive derived values for real-time scoring
+  let scoreInfo = $derived(getCurrentWordScore())
+  let isValid = $derived(isCurrentWordValid())
 
   function handleKeydown(e: KeyboardEvent) {
     switch (e.key) {
@@ -58,9 +64,7 @@
       {/each}
     </div>
     
-    {#if game.currentWord.length > 0}
-      {@const scoreInfo = getCurrentWordScore()}
-      {@const isValid = isCurrentWordValid()}
+    {#if game.selectedTiles.length > 0}
       <div class="potential-score" class:invalid={!isValid}>
         +{scoreInfo.totalScore}
         {#if scoreInfo.bonusCount > 0}
