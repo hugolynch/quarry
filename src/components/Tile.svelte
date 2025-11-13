@@ -36,7 +36,7 @@
   <div class="corner bottom-right">{tile.completelyCovered ? '?' : tile.letter}</div>
   {#if tile.isBonus && !tile.completelyCovered}
     <div class="bonus-star">
-      <img src="/mult.svg" alt="Bonus tile" />
+      <img src="./mult.svg" alt="Bonus tile" />
     </div>
   {/if}
 </div>
