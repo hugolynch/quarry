@@ -148,6 +148,8 @@
     game.layers = puzzle.layers
     ;(window as any).dailySwapPool = puzzle.swapPool
     ;(window as any).dailyRng = puzzle.rng
+    ;(window as any).dailyPreSelectedSwaps = puzzle.preSelectedSwaps
+    ;(window as any).dailySwapIndex = 0
   }
 
   function stopReplay() {

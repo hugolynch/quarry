@@ -178,6 +178,7 @@ export function saveDailyGameState(gameState: any, undoHistory?: any[]): void {
     penaltyScore: gameState.penaltyScore,
     showEndGameConfirmation: gameState.showEndGameConfirmation,
     undoHistory: undoHistory || [],
+    dailySwapIndex: (window as any).dailySwapIndex ?? 0,
     timestamp: Date.now()
   }
   localStorage.setItem(`daily-game-${today}`, JSON.stringify(stateData))
@@ -381,12 +382,27 @@ export function generateDailyPuzzle(seed: number): { layers: Layer[]; swapPool: 
 
   console.log('Daily puzzle swap pool created with', swapPool.length, 'tiles:', swapPool.slice(0, 10), '...')
   
+  // Pre-select 3 swap tiles using seeded random (deterministic)
+  const preSelectedSwaps: string[] = []
+  const swapPoolCopy = [...swapPool] // Work with a copy so we don't modify the original
+  
+  for (let i = 0; i < 3; i++) {
+    if (swapPoolCopy.length > 0) {
+      const randomIndex = Math.floor(rng.next() * swapPoolCopy.length)
+      const selectedTile = swapPoolCopy.splice(randomIndex, 1)[0]
+      preSelectedSwaps.push(selectedTile)
+    }
+  }
+  
+  console.log('Pre-selected swap tiles:', preSelectedSwaps)
+  
   // Assign bonus tiles to layers using seeded RNG
   assignBonusTiles(layers, rng)
   
   return {
     layers,
     swapPool,
-    rng
+    rng,
+    preSelectedSwaps
   }
 }

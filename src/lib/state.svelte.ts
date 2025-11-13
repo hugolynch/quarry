@@ -54,7 +54,7 @@ let swapPool: string[] = []
 // Undo history for daily puzzle
 type UndoAction = 
   | { type: 'word'; tiles: Tile[]; score: number; word: string; tilePositions: Array<{ layer: number; index: number }> }
-  | { type: 'swap'; tileId: string; oldLetter: string; newLetter: string; swapPoolIndex: number; swapPoolLetter: string; wasBonus: boolean }
+  | { type: 'swap'; tileId: string; oldLetter: string; newLetter: string; swapPoolIndex?: number; swapPoolLetter: string; wasBonus: boolean; swapIndex?: number }
 
 let undoHistory: UndoAction[] = []
 
@@ -788,24 +788,41 @@ export function swapTile(tile: Tile) {
   // Use daily swap pool if available (for daily puzzle mode)
   const currentSwapPool = (window as any).dailySwapPool || swapPool
   const dailyRng = (window as any).dailyRng // Seeded random for daily puzzle
+  const preSelectedSwaps = (window as any).dailyPreSelectedSwaps
+  let swapIndex = (window as any).dailySwapIndex ?? 0
   
-  // Check if we have tiles available in the swap pool
-  if (currentSwapPool.length === 0) {
+  // Check if we have tiles available
+  if (currentSwapPool.length === 0 && !preSelectedSwaps) {
     setFeedback("No more tiles available for swapping!", 'red')
     return
   }
   
-  // Get a tile from the swap pool using seeded random for daily puzzle, or regular random for free play
-  let randomIndex: number
-  if (dailyRng) {
-    // Use seeded random for deterministic daily puzzle swaps
-    randomIndex = Math.floor(dailyRng.next() * currentSwapPool.length)
+  // For daily puzzle, use pre-selected swaps; otherwise use random from pool
+  let newLetter: string
+  let randomIndex: number | undefined
+  
+  if (game.isDailyPuzzle && preSelectedSwaps && swapIndex < preSelectedSwaps.length) {
+    // Use the pre-selected swap tile
+    newLetter = preSelectedSwaps[swapIndex]
+    swapIndex++ // Move to next pre-selected swap
+    ;(window as any).dailySwapIndex = swapIndex
   } else {
-    // Use regular random for free play
-    randomIndex = Math.floor(Math.random() * currentSwapPool.length)
+    // Free play mode: get a tile from the swap pool using random
+    if (currentSwapPool.length === 0) {
+      setFeedback("No more tiles available for swapping!", 'red')
+      return
+    }
+    
+    if (dailyRng) {
+      // Use seeded random for deterministic daily puzzle swaps (fallback)
+      randomIndex = Math.floor(dailyRng.next() * currentSwapPool.length)
+    } else {
+      // Use regular random for free play
+      randomIndex = Math.floor(Math.random() * currentSwapPool.length)
+    }
+    newLetter = currentSwapPool.splice(randomIndex, 1)[0]
   }
   
-  const newLetter = currentSwapPool.splice(randomIndex, 1)[0]
   const oldLetter = tile.letter
   const wasBonus = tile.isBonus
   
@@ -818,7 +835,8 @@ export function swapTile(tile: Tile) {
       newLetter,
       swapPoolIndex: randomIndex,
       swapPoolLetter: newLetter,
-      wasBonus
+      wasBonus,
+      swapIndex: game.isDailyPuzzle && preSelectedSwaps ? swapIndex - 1 : undefined // Save the index before increment
     })
   }
   
@@ -923,7 +941,17 @@ export function getSwapPoolStatus() {
 
 // Get upcoming swap letters for daily puzzle
 export function getUpcomingSwapLetters(count: number = 3): string[] {
-  // Use daily swap pool if available (for daily puzzle mode)
+  // Check if we're using pre-selected swaps (daily puzzle mode)
+  const preSelectedSwaps = (window as any).dailyPreSelectedSwaps
+  const swapIndex = (window as any).dailySwapIndex ?? 0
+  
+  if (game.isDailyPuzzle && preSelectedSwaps) {
+    // Return the remaining pre-selected swaps
+    const remainingSwaps = preSelectedSwaps.slice(swapIndex)
+    return remainingSwaps.slice(0, count)
+  }
+  
+  // Fallback to old behavior for free play mode
   const currentSwapPool = (window as any).dailySwapPool || swapPool
   const dailyRng = (window as any).dailyRng // Seeded random for daily puzzle
   
@@ -1021,7 +1049,7 @@ export function undoLastAction(): boolean {
     return true
   } else if (lastAction.type === 'swap') {
     // Undo tile swap: restore original letter
-    const { tileId, oldLetter, newLetter, swapPoolIndex, swapPoolLetter, wasBonus } = lastAction
+    const { tileId, oldLetter, newLetter, swapPoolIndex, swapPoolLetter, wasBonus, swapIndex } = lastAction
     
     // Find the tile
     let tile: Tile | null = null
@@ -1038,37 +1066,17 @@ export function undoLastAction(): boolean {
       tile.letter = oldLetter
       tile.isBonus = wasBonus
       
-      // Restore swap pool (put the letter back at the original position)
-      const currentSwapPool = (window as any).dailySwapPool || swapPool
-      currentSwapPool.splice(swapPoolIndex, 0, swapPoolLetter)
+      // Restore swap index if using pre-selected swaps
+      if (swapIndex !== undefined) {
+        ;(window as any).dailySwapIndex = swapIndex
+      } else if (swapPoolIndex !== undefined) {
+        // Restore swap pool (put the letter back at the original position) for free play mode
+        const currentSwapPool = (window as any).dailySwapPool || swapPool
+        currentSwapPool.splice(swapPoolIndex, 0, swapPoolLetter)
+      }
       
       // Restore swap count
       game.swapsRemaining++
-      
-      // For daily puzzle, regenerate RNG to correct state after undo
-      // The RNG state should be: puzzle generation + (3 - game.swapsRemaining) swaps
-      if (game.isDailyPuzzle && (window as any).dailyPuzzleSeed !== undefined) {
-        const originalSeed = (window as any).dailyPuzzleSeed
-        const newRng = new SeededRandom(originalSeed)
-        
-        // Calculate how many RNG calls were made during puzzle generation
-        const puzzleGenerationCalls = 99 + 29 // shuffle calls + tile placement calls
-        
-        // Advance through puzzle generation
-        for (let i = 0; i < puzzleGenerationCalls; i++) {
-          newRng.next()
-        }
-        
-        // Advance through swaps that have been made (current swapsRemaining tells us how many are left)
-        // After undo, swapsRemaining has been incremented, so we need to calculate swaps made before the undo
-        const swapsMade = 3 - game.swapsRemaining
-        for (let i = 0; i < swapsMade; i++) {
-          newRng.next()
-        }
-        
-        // Replace the RNG with the regenerated one
-        ;(window as any).dailyRng = newRng
-      }
       
       setFeedback(`Undid swap: restored ${oldLetter}`, 'blue')
       return true

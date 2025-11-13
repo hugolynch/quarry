@@ -124,6 +124,8 @@
         ;(window as any).dailySwapPool = puzzle.swapPool
         ;(window as any).dailyRng = puzzle.rng
         ;(window as any).dailyPuzzleSeed = dailyData.seed
+        ;(window as any).dailyPreSelectedSwaps = puzzle.preSelectedSwaps
+        ;(window as any).dailySwapIndex = 0 // Track which of the 3 pre-selected swaps we're on
         
         // Flag already set at the start of function
         return
@@ -173,6 +175,13 @@
       ;(window as any).dailySwapPool = puzzle.swapPool
       ;(window as any).dailyRng = puzzle.rng
       ;(window as any).dailyPuzzleSeed = dailyData.seed
+      ;(window as any).dailyPreSelectedSwaps = puzzle.preSelectedSwaps
+      // Restore swap index from saved state if available, otherwise calculate from swapsRemaining
+      if (savedState.dailySwapIndex !== undefined) {
+        ;(window as any).dailySwapIndex = savedState.dailySwapIndex
+      } else {
+        ;(window as any).dailySwapIndex = 3 - game.swapsRemaining
+      }
     } else {
       // No saved state, start fresh
       game.currentWord = ''
@@ -188,13 +197,15 @@
       game.penaltyScore = 0
       game.showEndGameConfirmation = false
 
-      // Generate daily puzzle layout and swap pool
-      const puzzle = generateDailyPuzzle(dailyData.seed)
-      game.layers = puzzle.layers
-      
-      // Set up the swap pool and seeded random for daily puzzle
-      ;(window as any).dailySwapPool = puzzle.swapPool
-      ;(window as any).dailyRng = puzzle.rng
+    // Generate daily puzzle layout and swap pool
+    const puzzle = generateDailyPuzzle(dailyData.seed)
+    game.layers = puzzle.layers
+    
+    // Set up the swap pool and seeded random for daily puzzle
+    ;(window as any).dailySwapPool = puzzle.swapPool
+    ;(window as any).dailyRng = puzzle.rng
+      ;(window as any).dailyPreSelectedSwaps = puzzle.preSelectedSwaps
+      ;(window as any).dailySwapIndex = 0
       ;(window as any).dailyPuzzleSeed = dailyData.seed
     }
     
@@ -350,6 +361,8 @@
     // Set up the swap pool and seeded random
     ;(window as any).dailySwapPool = puzzle.swapPool
     ;(window as any).dailyRng = puzzle.rng
+    ;(window as any).dailyPreSelectedSwaps = puzzle.preSelectedSwaps
+    ;(window as any).dailySwapIndex = 0
     ;(window as any).dailyPuzzleSeed = dailyData.seed
   }
 
