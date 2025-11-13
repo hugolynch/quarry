@@ -669,6 +669,26 @@ export function getCurrentWordScore(): { baseScore: number; bonusCount: number; 
   return calculateWordScore(game.selectedTiles)
 }
 
+// Check if the current word is valid
+export function isCurrentWordValid(): boolean {
+  if (game.selectedTiles.length === 0) return false
+  
+  // Build word from current tile order
+  const currentWord = game.selectedTiles.map(tile => tile.letter).join('')
+  if (currentWord.length === 0) return false
+  
+  // Validate temp-selectable tiles
+  const tempSelectableValidation = validateTempSelectableTiles()
+  if (!tempSelectableValidation.valid) {
+    return false
+  }
+  
+  // Check if word is in word list (with wildcard permutations)
+  const upperWord = currentWord.toUpperCase()
+  const possibleWords = generateWildcardPermutations(upperWord)
+  return possibleWords.some(word => game.wordList.has(word))
+}
+
 // Toggle swap mode
 export function toggleSwapMode() {
   if (game.swapsRemaining <= 0) {

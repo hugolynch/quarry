@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { game, submitWord, clearSelection, reorderTiles, removeTileFromWord, getCurrentWordScore, toggleSwapMode } from '../lib/state.svelte'
+  import { game, submitWord, clearSelection, reorderTiles, removeTileFromWord, getCurrentWordScore, isCurrentWordValid, toggleSwapMode } from '../lib/state.svelte'
   import { dndzone } from 'svelte-dnd-action'
   import WordTile from './WordTile.svelte'
   import type { Tile } from '../types/game'
@@ -56,10 +56,11 @@
     
     {#if game.currentWord.length > 0}
       {@const scoreInfo = getCurrentWordScore()}
-      <div class="potential-score">
+      {@const isValid = isCurrentWordValid()}
+      <div class="potential-score" class:invalid={!isValid}>
         +{scoreInfo.totalScore}
         {#if scoreInfo.bonusCount > 0}
-          <span class="bonus-indicator" aria-label="{scoreInfo.bonusCount} bonus tile{scoreInfo.bonusCount > 1 ? 's' : ''}">
+          <span class="bonus-indicator" class:invalid={!isValid} aria-label="{scoreInfo.bonusCount} bonus tile{scoreInfo.bonusCount > 1 ? 's' : ''}">
             {#each Array(scoreInfo.bonusCount) as _}
               ✶
             {/each}
@@ -210,10 +211,18 @@
     color: #579E47;
   }
 
+  .potential-score.invalid {
+    color: #dc3545;
+  }
+
   .bonus-indicator {
     font-size: 14px;
     color: #B48CF6;
     line-height: 1;
+  }
+
+  .bonus-indicator.invalid {
+    color: #dc3545;
   }
 
   .button-icon {
