@@ -677,6 +677,17 @@ export function swapTile(tile: Tile) {
 // Show end game confirmation dialog
 export function showEndGameConfirmation() {
   if (game.gameOver) return
+  
+  // Check if there are remaining tiles
+  const remainingTiles = countRemainingTiles()
+  
+  // If no tiles remain, end the game directly
+  if (remainingTiles === 0) {
+    confirmEndGame()
+    return
+  }
+  
+  // Otherwise, show confirmation modal
   game.showEndGameConfirmation = true
 }
 

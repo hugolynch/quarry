@@ -448,7 +448,7 @@ Longest Word: ${dailyData.longestWordLength} letters`
 
       <div class="bottom-controls">
         <button
-          onclick={handleDailyEndGame}
+          onclick={showEndGameConfirmation}
           disabled={game.gameOver}
           class="done-button"
         >

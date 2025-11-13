@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { game, initializeGame, confirmEndGame, setDailyPuzzleMode, setGameMode } from './lib/state.svelte'
+  import { game, initializeGame, confirmEndGame, showEndGameConfirmation, cancelEndGame, setDailyPuzzleMode, setGameMode } from './lib/state.svelte'
   import { initializeFullscreen, onFullscreenChange, getFullscreenState, enterFullscreenIfPWA } from './lib/fullscreen'
   import Board from './components/Board.svelte'
   import MiniBoard from './components/MiniBoard.svelte'
@@ -175,7 +175,7 @@
           </button>
         {:else}
           <button 
-            onclick={confirmEndGame} 
+            onclick={showEndGameConfirmation} 
             class="done-button"
           >
             <svg class="button-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -211,7 +211,7 @@
           </button>
         {:else}
           <button 
-            onclick={confirmEndGame} 
+            onclick={showEndGameConfirmation} 
             class="done-button"
           >
             <svg class="button-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -247,7 +247,7 @@
           </button>
         {:else}
           <button 
-            onclick={confirmEndGame} 
+            onclick={showEndGameConfirmation} 
             class="done-button"
           >
             <svg class="button-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -277,6 +277,39 @@
 
   <!-- Install Prompt -->
   <InstallPrompt />
+
+  <!-- Confirmation Dialog -->
+  {#if game.showEndGameConfirmation}
+    <div
+      class="confirmation-overlay"
+      onclick={cancelEndGame}
+      onkeydown={(e) => e.key === 'Escape' && cancelEndGame()}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="dialog-title"
+      tabindex="-1"
+    >
+      <div
+        class="confirmation-dialog"
+        onclick={(e) => e.stopPropagation()}
+        onkeydown={(e) => e.key === 'Escape' && cancelEndGame()}
+        role="alertdialog"
+        tabindex="0"
+      >
+        <h3 id="dialog-title">End Game?</h3>
+        <p>Are you sure you want to end the game? You'll receive a penalty for any remaining tiles.</p>
+
+        <div class="confirmation-buttons">
+          <button onclick={cancelEndGame} class="cancel-button">
+            Cancel
+          </button>
+          <button onclick={confirmEndGame} class="confirm-button">
+            End Game
+          </button>
+        </div>
+      </div>
+    </div>
+  {/if}
 
 </main>
 
@@ -431,5 +464,73 @@
     flex-shrink: 0;
   }
 
+  /* Confirmation Dialog Styles */
+  .confirmation-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+
+  .confirmation-dialog {
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+  }
+
+  .confirmation-dialog h3 {
+    margin: 0 0 15px 0;
+    color: #333;
+    font-size: 1.3em;
+  }
+
+  .confirmation-dialog p {
+    margin: 0 0 25px 0;
+    color: #666;
+    line-height: 1.4;
+  }
+
+  .confirmation-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+  }
+
+  .cancel-button,
+  .confirm-button {
+    padding: 10px 20px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: white;
+    color: #333;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 14px;
+    transition: background-color 0.1s ease;
+  }
+
+  .cancel-button:hover {
+    background-color: #f0f0f0;
+  }
+
+  .confirm-button {
+    background-color: #dc3545;
+    color: white;
+    border-color: #dc3545;
+  }
+
+  .confirm-button:hover {
+    background-color: #c82333;
+  }
 
 </style>
