@@ -3,6 +3,10 @@
   import { dndzone } from 'svelte-dnd-action'
   import WordTile from './WordTile.svelte'
   import type { Tile } from '../types/game'
+  
+  // Props for daily puzzle board map
+  export let showBoardMapButton: boolean = false
+  export let onBoardMapClick: (() => void) | null = null
 
   function handleKeydown(e: KeyboardEvent) {
     switch (e.key) {
@@ -103,6 +107,15 @@
       </svg>
       Submit
     </button>
+    {#if showBoardMapButton && onBoardMapClick}
+      <button on:click={onBoardMapClick} disabled={game.gameOver} class="board-map-button">
+        <svg class="button-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+        Board Map
+      </button>
+    {/if}
   </div>
   
 </div>

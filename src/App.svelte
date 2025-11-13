@@ -307,10 +307,8 @@
             // Use Daily Puzzle callback if in daily puzzle mode, otherwise use regular confirmEndGame
             const dailyCallback = getDailyPuzzleEndGameCallback()
             if (game.isDailyPuzzle && dailyCallback) {
-              console.log('[App] Using Daily Puzzle callback')
               dailyCallback()
             } else {
-              console.log('[App] Using regular confirmEndGame')
               confirmEndGame()
             }
           }} class="confirm-button">

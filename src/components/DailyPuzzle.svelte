@@ -37,9 +37,11 @@
 
   // Share button state
   let shareButtonText = $state('Share')
+  
+  // Board map modal state
+  let showBoardMap = $state(false)
 
   onMount(() => {
-    console.log('[DailyPuzzle] Component mounted')
     // Set Daily Puzzle mode
     setDailyPuzzleMode(true)
     
@@ -50,14 +52,6 @@
     ;(window as any).dailyPuzzleCompleted = dailyData.isCompleted
     
     initializeDailyPuzzle()
-    
-    console.log('[DailyPuzzle] After initialization:', {
-      isCompleted: dailyData.isCompleted,
-      gameOver: game.gameOver,
-      usedWords: game.usedWords.length,
-      finalScore: game.finalScore,
-      layersLength: game.layers.length
-    })
   })
 
   // Auto-save game state whenever it changes
@@ -80,19 +74,6 @@
     if (game.usedWords.length > 0) {
       updateAllWordsFound()
     }
-  })
-
-  // Debug: Track banner condition changes
-  $effect(() => {
-    const shouldShow = dailyData.isCompleted && game.gameOver
-    console.log('[DailyPuzzle] Banner condition check:', {
-      isCompleted: dailyData.isCompleted,
-      gameOver: game.gameOver,
-      shouldShow,
-      usedWords: game.usedWords.length,
-      finalScore: game.finalScore,
-      penaltyScore: game.penaltyScore
-    })
   })
 
   function initializeDailyPuzzle() {
@@ -254,25 +235,8 @@
 
   // Handle daily puzzle end game
   function handleDailyEndGame() {
-    console.log('[DailyPuzzle] handleDailyEndGame called')
-    console.log('[DailyPuzzle] Before confirmEndGame:', {
-      gameOver: game.gameOver,
-      finalScore: game.finalScore,
-      penaltyScore: game.penaltyScore,
-      usedWords: game.usedWords.length,
-      isCompleted: dailyData.isCompleted
-    })
-    
     // Call the regular confirmEndGame function
     confirmEndGame()
-    
-    console.log('[DailyPuzzle] After confirmEndGame:', {
-      gameOver: game.gameOver,
-      finalScore: game.finalScore,
-      penaltyScore: game.penaltyScore,
-      usedWords: game.usedWords.length,
-      isCompleted: dailyData.isCompleted
-    })
     
     // Update local data first
     dailyData.isCompleted = true
@@ -308,7 +272,6 @@
     
     // Ensure layers are preserved for display (regenerate if needed)
     if (game.layers.length === 0) {
-      console.log('[DailyPuzzle] Regenerating layers (layers.length was 0)')
       const puzzle = generateDailyPuzzle(dailyData.seed)
       game.layers = puzzle.layers
       
@@ -329,16 +292,6 @@
     // The game state (usedWords, finalScore, penaltyScore) should already be set by confirmEndGame()
     // but we ensure gameOver is true and layers are present for proper display
     game.gameOver = true
-    
-    console.log('[DailyPuzzle] Final state after handleDailyEndGame:', {
-      gameOver: game.gameOver,
-      finalScore: game.finalScore,
-      penaltyScore: game.penaltyScore,
-      usedWords: game.usedWords.length,
-      isCompleted: dailyData.isCompleted,
-      layersLength: game.layers.length,
-      bannerShouldShow: dailyData.isCompleted && game.gameOver
-    })
   }
 
   // Reset daily puzzle for replay
@@ -394,6 +347,71 @@
     })
   }
 
+  // Generate board map HTML with bonus tile highlighting
+  function generateBoardMapHTML(): string {
+    if (game.layers.length === 0) return ''
+    
+    const mapLines: string[] = []
+    
+    // Process each layer from top to bottom
+    for (let layerIndex = 0; layerIndex < game.layers.length; layerIndex++) {
+      const layer = game.layers[layerIndex]
+      
+      // Find the bounds of this layer based on tile positions
+      let minX = Infinity
+      let maxX = -Infinity
+      let minY = Infinity
+      let maxY = -Infinity
+      
+      layer.tiles.forEach(tile => {
+        // Use the first coordinate (top-left) of each tile
+        const [x, y] = tile.coords[0]
+        minX = Math.min(minX, x)
+        maxX = Math.max(maxX, x)
+        minY = Math.min(minY, y)
+        maxY = Math.max(maxY, y)
+      })
+      
+      // Create a 2D grid for this layer
+      const tileGrid: Map<string, { letter: string; isBonus: boolean }> = new Map()
+      
+      // Store each tile's letter and bonus status at its position
+      layer.tiles.forEach(tile => {
+        // Use the top-left coordinate as the tile's position
+        const [x, y] = tile.coords[0]
+        const key = `${x},${y}`
+        tileGrid.set(key, { letter: tile.letter, isBonus: tile.isBonus || false })
+      })
+      
+      // Build the grid by rows (x coordinates are rows, y coordinates are columns)
+      // x increases vertically (rows), y increases horizontally (columns)
+      for (let x = minX; x <= maxX; x += 2) {
+        const row: string[] = []
+        for (let y = minY; y <= maxY; y += 2) {
+          const key = `${x},${y}`
+          const tileData = tileGrid.get(key)
+          if (tileData) {
+            if (tileData.isBonus) {
+              row.push(`<span class="bonus-tile">${tileData.letter}</span>`)
+            } else {
+              row.push(tileData.letter)
+            }
+          } else {
+            row.push(' ')
+          }
+        }
+        mapLines.push(row.join(''))
+      }
+      
+      // Add empty line between layers (except after last layer)
+      if (layerIndex < game.layers.length - 1) {
+        mapLines.push('')
+      }
+    }
+    
+    return mapLines.join('\n')
+  }
+
   // Share daily puzzle stats
   async function shareStats() {
     const statsText =
@@ -430,7 +448,6 @@ Longest Word: ${dailyData.longestWordLength} letters`
 
   <!-- Completion Status -->
   {#if dailyData.isCompleted && game.gameOver}
-    {@const bannerDebug = console.log('[DailyPuzzle] Banner rendering - condition met:', { isCompleted: dailyData.isCompleted, gameOver: game.gameOver, usedWords: game.usedWords.length, finalScore: game.finalScore }) || true}
     <div class="completion-banner success">
       <div class="completion-content">
         <div class="completion-title">Daily puzzle completed!</div>
@@ -512,10 +529,9 @@ Longest Word: ${dailyData.longestWordLength} letters`
 
   <!-- Game Board -->
   {#if !game.gameOver}
-    {@const gameBoardDebug = console.log('[DailyPuzzle] Game board rendering - gameOver is false') || true}
     <div class="game-page">
       <Board />
-      <WordArea />
+      <WordArea showBoardMapButton={dailyData.attempts > 0} onBoardMapClick={() => showBoardMap = true} />
       <Score />
 
       <div class="bottom-controls">
@@ -533,6 +549,44 @@ Longest Word: ${dailyData.longestWordLength} letters`
     </div>
   {/if}
 
+
+  <!-- Board Map Modal -->
+  {#if showBoardMap}
+    <div
+      class="modal-overlay"
+      onclick={() => showBoardMap = false}
+      onkeydown={(e) => e.key === 'Escape' && (showBoardMap = false)}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="board-map-title"
+      tabindex="-1"
+    >
+      <div
+        class="modal-dialog board-map-dialog"
+        onclick={(e) => e.stopPropagation()}
+        onkeydown={(e) => e.key === 'Escape' && (showBoardMap = false)}
+        role="alertdialog"
+        tabindex="0"
+      >
+        <div class="modal-header">
+          <h3 id="board-map-title">Board Map</h3>
+          <button
+            onclick={() => showBoardMap = false}
+            class="modal-close-button"
+            aria-label="Close"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <div class="board-map-content">
+          <pre class="board-map-text">{@html generateBoardMapHTML()}</pre>
+        </div>
+      </div>
+    </div>
+  {/if}
 
   <!-- Confirmation Dialog -->
   {#if game.showEndGameConfirmation}
@@ -559,10 +613,7 @@ Longest Word: ${dailyData.longestWordLength} letters`
           <button onclick={cancelEndGame} class="cancel-button">
             Cancel
           </button>
-          <button onclick={() => {
-            console.log('[DailyPuzzle] Modal button clicked - calling handleDailyEndGame')
-            handleDailyEndGame()
-          }} class="confirm-button">
+          <button onclick={handleDailyEndGame} class="confirm-button">
             End Puzzle
           </button>
         </div>
@@ -585,7 +636,6 @@ Longest Word: ${dailyData.longestWordLength} letters`
     text-align: center;
     margin-bottom: 10px;
   }
-
 
   .daily-info {
     display: flex;
@@ -877,6 +927,101 @@ Longest Word: ${dailyData.longestWordLength} letters`
     width: 16px;
     height: 16px;
     flex-shrink: 0;
+  }
+
+  .bottom-controls {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    align-items: center;
+  }
+
+  /* Modal Styles */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+
+  .modal-dialog {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .board-map-dialog {
+    max-width: 400px;
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid #dee2e6;
+  }
+
+  .modal-header h3 {
+    margin: 0;
+    color: #333;
+    font-size: 1.3em;
+  }
+
+  .modal-close-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #666;
+    transition: color 0.2s;
+  }
+
+  .modal-close-button:hover {
+    color: #333;
+  }
+
+  .modal-close-button svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .board-map-content {
+    padding: 24px;
+    overflow: auto;
+  }
+
+  .board-map-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    margin: 0;
+    white-space: pre;
+    color: #333;
+    overflow-x: auto;
+    letter-spacing: 1rem;
+    text-align: center;
+  }
+
+  .board-map-text :global(span.bonus-tile) {
+    color: #9d4edd;
+    font-weight: bold;
+    display: inline;
+    letter-spacing: inherit;
   }
 
   /* Mobile responsive styles */
