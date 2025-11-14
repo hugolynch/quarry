@@ -117,7 +117,7 @@
 
 <div class="instructions-page">
   <div class="instructions-content">
-    <h1>Welcome to Quarry!</h1>
+    <h1>Who to play Quarry!</h1>
     
     <p>Quarry is a 3D word-building puzzle game where you dig through layers of letter tiles to create words and score points.</p>
 
@@ -491,6 +491,143 @@
       <li><strong>Can't select a tile?</strong> Make sure all tiles covering it are removed first</li>
       <li><strong>Stuck?</strong> Use the swap feature or look for shorter words</li>
     </ul>
+
+    <h2>Changelog</h2>
+    
+      <div class="changelog-entry">
+        <h3 class="changelog-version">v0.4.0 - 2025-11-13</h3>
+        <div class="changelog-category">
+          <h4>Added</h4>
+          <ul>
+            <li><strong>Bonus Tile Mechanic</strong>: Special tiles that multiply word score with visual indicator (✶ icon). Scoring formula: <code>baseScore * (1 + bonusCount)</code></li>
+            <li><strong>Real-time Word Validation</strong>: Word validity checked as tiles are selected with visual feedback (green for valid, red for invalid) and real-time score calculation</li>
+            <li><strong>Undo System</strong>: Added undo functionality for daily puzzle replays. Undo button appears after completing the daily puzzle at least once. Can undo word submissions and tile swaps. Undo history persists across page reloads.</li>
+            <li><strong>Board Map Feature</strong>: Added board map modal for daily puzzle replays. Shows complete board layout with all layers visible, displays one letter per tile in a grid format, highlights bonus tiles in purple. Only available after completing the daily puzzle at least once.</li>
+            <li><strong>End Game Modal Confirmation</strong>: Added confirmation dialog before ending a game to prevent accidental game endings. Shows remaining tiles count.</li>
+          </ul>
+        </div>
+        <div class="changelog-category">
+          <h4>Fixed</h4>
+          <ul>
+            <li>Selected tiles remaining visually selected after clearing word on page reload</li>
+            <li>Tile swap mode preview not displaying on page reload after completion</li>
+            <li>Swap mode preview now shows only as many letters as swaps remaining (instead of always 3)</li>
+            <li>Swap system now uses pre-determined tiles generated at puzzle creation instead of random selection</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="changelog-entry">
+        <h3 class="changelog-version">v0.3.0 - 2025-10-03</h3>
+        <div class="changelog-category">
+          <h4>Added</h4>
+          <ul>
+            <li><strong>New Logo and Branding</strong>: New logo and favicon design. Replaced all references from 'Stacks' to 'Quarry'. Updated tile color scheme and background.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="changelog-entry">
+        <h3 class="changelog-version">v0.2.6 - 2025-09-29</h3>
+        <div class="changelog-category">
+          <h4>Added</h4>
+          <ul>
+            <li><strong>PWA Support</strong>: Progressive Web App manifest, fullscreen functionality, service worker registration, install prompt support</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="changelog-entry">
+        <h3 class="changelog-version">v0.2.5 - 2025-09-25</h3>
+        <div class="changelog-category">
+          <h4>Added</h4>
+          <ul>
+            <li><strong>Upcoming Swap Letters Preview</strong>: Shows next tiles that will be swapped in (for completed daily puzzles). Only visible after completing the puzzle at least once. Displays in swap mode feedback.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="changelog-entry">
+        <h3 class="changelog-version">v0.2.4 - 2025-09-24</h3>
+        <div class="changelog-category">
+          <h4>Added</h4>
+          <ul>
+            <li><strong>Game Modes</strong>: Added game modes under 'free play' menu. Multiple board configurations available.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="changelog-entry">
+        <h3 class="changelog-version">v0.2.3 - 2025-09-23</h3>
+        <div class="changelog-category">
+          <h4>Added</h4>
+          <ul>
+            <li><strong>Archive Feature</strong>: View past daily puzzles, track statistics across multiple days, access historical puzzle data</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="changelog-entry">
+        <h3 class="changelog-version">v0.2.2 - 2025-09-22</h3>
+        <div class="changelog-category">
+          <h4>Added</h4>
+          <ul>
+            <li><strong>LocalStorage State Persistence</strong>: Game state saved automatically, restores on page reload, preserves progress across sessions</li>
+            <li><strong>Longest Word Tracking</strong>: Tracks longest word found in daily puzzle, displays in stats layout</li>
+            <li><strong>Wordlist Updates</strong>: Added 1 and 2-letter words to wordlist</li>
+            <li><strong>Instructions Page</strong>: Game rules and instructions, strategy tips and gameplay guide</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="changelog-entry">
+        <h3 class="changelog-version">v0.2.1 - 2025-09-21</h3>
+        <div class="changelog-category">
+          <h4>Added</h4>
+          <ul>
+            <li><strong>New Scoring System</strong>: Length-based scoring formula, points scale with word length</li>
+            <li><strong>Completion Banner Enhancements</strong>: Sharing functionality, more complete statistics display, better visual presentation</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="changelog-entry">
+        <h3 class="changelog-version">v0.2.0 - 2025-09-20</h3>
+        <div class="changelog-category">
+          <h4>Added</h4>
+          <ul>
+            <li><strong>Daily Puzzle Mode</strong>: Deterministic daily puzzles using seeded random number generation. Same puzzle for all players, resets each day. Can be replayed multiple times. Progress tracking and statistics. Completion banner with score breakdown. Best score tracking. Attempt counter.</li>
+            <li><strong>Drag-and-Drop Tile Reordering</strong>: Redesigned tile area with drag-and-drop functionality. Reorder letters in word before submission.</li>
+            <li><strong>Swap System</strong>: Tile swapping (3 swaps per game). Generates swap pile with rest of puzzle.</li>
+          </ul>
+        </div>
+        <div class="changelog-category">
+          <h4>Fixed</h4>
+          <ul>
+            <li><strong>Bug fixes</strong>: Various bug fixes and improvements</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="changelog-entry">
+        <h3 class="changelog-version">v0.1.1 - 2025-09-19</h3>
+        <div class="changelog-category">
+          <h4>Added</h4>
+          <ul>
+            <li><strong>Svelte Migration</strong>: Converted project to Svelte framework</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="changelog-entry">
+        <h3 class="changelog-version">v0.1.0 - 2025-05-09</h3>
+        <div class="changelog-category">
+          <h4>Added</h4>
+          <ul>
+            <li><strong>Initial Release</strong>: Core word-building gameplay, 3D layered board (4×4, 3×3, 2×2 layers), tile selection and word formation, basic scoring system, word validation, temporary tile selection (blue tiles), wildcard tiles (*) support, penalty system (3 points per remaining tile)</li>
+          </ul>
+        </div>
+      </div>
   </div>
 </div>
 
@@ -942,6 +1079,70 @@
   .bonus-tile {
     color: #9d4edd;
     font-weight: bold;
+  }
+
+  /* Changelog Styles */
+  .changelog-section {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 2px solid #e9ecef;
+  }
+
+  .changelog-entry {
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid #e9ecef;
+  }
+
+  .changelog-entry:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .changelog-version {
+    color: #007bff;
+    margin-top: 0;
+    margin-bottom: 16px;
+    font-size: clamp(1.1rem, 2.5vw, 1.25rem);
+    font-weight: 600;
+  }
+
+  .changelog-category {
+    margin-bottom: 16px;
+  }
+
+  .changelog-category:last-child {
+    margin-bottom: 0;
+  }
+
+  .changelog-category h4 {
+    color: #495057;
+    margin-top: 12px;
+    margin-bottom: 8px;
+    font-size: clamp(1rem, 2vw, 1.1rem);
+    font-weight: 600;
+  }
+
+  .changelog-category ul {
+    margin-bottom: 12px;
+    padding-left: 24px;
+  }
+
+  .changelog-category li {
+    margin-bottom: 8px;
+    color: #555;
+    font-size: clamp(0.9rem, 2vw, 1rem);
+    line-height: 1.6;
+  }
+
+  .changelog-category code {
+    background-color: #f8f9fa;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9em;
+    color: #d63384;
   }
 
 
