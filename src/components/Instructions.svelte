@@ -117,7 +117,7 @@
 
 <div class="instructions-page">
   <div class="instructions-content">
-    <h1>Who to play Quarry!</h1>
+    <h1>How to play Quarry!</h1>
     
     <p>Quarry is a 3D word-building puzzle game where you dig through layers of letter tiles to create words and score points.</p>
 
