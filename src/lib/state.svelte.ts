@@ -1,9 +1,70 @@
-import type { GameState, Tile, Layer, Coordinate } from '../types/game'
+import type { GameState, GameMode, Tile, Layer } from '../types/game'
 import { SeededRandom } from './daily-puzzle'
 
 
 // Generate tile bag with Scrabble distribution
 const TILE_BAG = "AAAAAAAAABBCCDDDDEEEEEEEEEEEEFFGGGHHIIIIIIIIIJKLLLLMMNNNNNNOOOOOOOOPPQRRRRRRSSSSTTTTTTUUUUVVWWXYYZ**".split('')
+
+export const FREE_PLAY_MODES: GameMode[] = ['main', 'mini', 'pyramid', 'crown']
+
+/**
+ * Crown silhouettes — 3 layers from the design (largest on top).
+ * Half-tile inset each layer so tiles meet at corners (same as main).
+ * Fine grid: 10×14.
+ *
+ *   Top    7×5   ##....# / ##.#.## / ####### ×3
+ *   Middle 6×3   #.##.# / ###### ×2
+ *   Bottom 5×2   #.#.# / #####
+ */
+function buildCrownPositions(): { x: number; y: number }[][] {
+  const layers: { mask: string[]; offsetX: number; offsetY: number }[] = [
+    // z0 Top (largest)
+    {
+      offsetX: 0,
+      offsetY: 0,
+      mask: [
+        '#.....#',
+        '##.#.##',
+        '#######',
+        '#######',
+        '#######'
+      ]
+    },
+    // z1 Middle — half-tile inset; bottom-aligned under Top
+    {
+      offsetX: 3,
+      offsetY: 1,
+      mask: [
+        '#.##.#',
+        '######',
+        '######'
+      ]
+    },
+    // z2 Bottom (smallest) — another half-tile inset; bottom-aligned
+    {
+      offsetX: 4,
+      offsetY: 2,
+      mask: [
+        '#.#.#',
+        '#####'
+      ]
+    }
+  ]
+
+  return layers.map(({ mask, offsetX, offsetY }) => {
+    const positions: { x: number; y: number }[] = []
+    mask.forEach((row, r) => {
+      for (let c = 0; c < row.length; c++) {
+        if (row[c] === '#') {
+          positions.push({ x: offsetX + r * 2, y: offsetY + c * 2 })
+        }
+      }
+    })
+    return positions
+  })
+}
+
+const CROWN_POSITIONS = buildCrownPositions()
 
 // Get Scrabble letter point value
 export function getScrabbleLetterValue(letter: string): number {
@@ -44,12 +105,53 @@ export const game = $state<GameState>({
   penaltyScore: 0,
   showEndGameConfirmation: false,
   isDailyPuzzle: false,
-  gameMode: 'main'
+  gameMode: 'main',
+  seed: null
 })
 
 // Store the original tile bag and swap pool
 let originalTileBag: string[] = []
 let swapPool: string[] = []
+
+// Free-play seeded swaps (mirrors daily pre-selected swaps)
+let freePlayPreSelectedSwaps: string[] = []
+let freePlaySwapIndex = 0
+let freePlayRng: SeededRandom | null = null
+
+export function generateRandomSeed(): number {
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    const buf = new Uint32Array(1)
+    crypto.getRandomValues(buf)
+    return buf[0]!
+  }
+  return Math.floor(Math.random() * 0xffffffff)
+}
+
+export function getShareUrl(mode: GameMode, seed: number): string {
+  const url = new URL(window.location.href)
+  url.search = ''
+  url.searchParams.set('mode', mode)
+  url.searchParams.set('seed', String(seed))
+  return url.toString()
+}
+
+export function getDailyShareUrl(date: string): string {
+  const url = new URL(window.location.href)
+  url.search = ''
+  url.searchParams.set('mode', 'daily')
+  url.searchParams.set('date', date)
+  return url.toString()
+}
+
+export function syncUrlToCurrentGame() {
+  if (game.isDailyPuzzle || game.seed === null) return
+  if (!FREE_PLAY_MODES.includes(game.gameMode)) return
+  const url = new URL(window.location.href)
+  url.searchParams.set('mode', game.gameMode)
+  url.searchParams.set('seed', String(game.seed))
+  url.searchParams.delete('date')
+  history.replaceState(null, '', url.toString())
+}
 
 // Undo history for daily puzzle
 type UndoAction = 
@@ -97,7 +199,7 @@ export function setDailyPuzzleMode(isDaily: boolean) {
 }
 
 // Set game mode
-export function setGameMode(mode: 'main' | 'mini' | 'pyramid') {
+export function setGameMode(mode: GameMode) {
   game.gameMode = mode
 }
 
@@ -114,8 +216,8 @@ export function getDailyPuzzleEndGameCallback(): (() => void) | null {
   return dailyPuzzleEndGameCallback
 }
 
-// Initialize game
-export function initializeGame() {
+// Initialize game with optional seed (generates a new seed when omitted)
+export function initializeGame(seed?: number) {
   // Clear any existing feedback timeout
   if (feedbackTimeout) {
     clearTimeout(feedbackTimeout)
@@ -136,6 +238,13 @@ export function initializeGame() {
   game.penaltyScore = 0
   game.showEndGameConfirmation = false
   game.isDailyPuzzle = false
+  game.seed = seed ?? generateRandomSeed()
+
+  // Clear daily-only window state so free play uses its own swap pool
+  ;(window as any).dailySwapPool = undefined
+  ;(window as any).dailyRng = undefined
+  ;(window as any).dailyPreSelectedSwaps = undefined
+  ;(window as any).dailySwapIndex = undefined
 
   // Load word list
   fetch('./wordlist.txt')
@@ -148,93 +257,136 @@ export function initializeGame() {
 
   // Generate layers and tiles
   game.layers = generateLayers()
+  updateTileStates()
+  syncUrlToCurrentGame()
+}
+
+function createTile(
+  x: number,
+  y: number,
+  z: number,
+  letter: string,
+  allVisible: boolean
+): Tile {
+  return {
+    id: `${x}-${y}-${z}`,
+    letter,
+    coords: [
+      [x, y, z],
+      [x + 1, y, z],
+      [x, y + 1, z],
+      [x + 1, y + 1, z]
+    ],
+    parentCoords: z > 0 ? [
+      [x, y, z - 1],
+      [x + 1, y, z - 1],
+      [x, y + 1, z - 1],
+      [x + 1, y + 1, z - 1]
+    ] : undefined,
+    selected: false,
+    visible: z === 0 || allVisible,
+    selectable: z === 0,
+    layer: z,
+    position: { x, y },
+    completelyCovered: z > 0 && !allVisible,
+    isBonus: false
+  }
 }
 
 function generateLayers(): Layer[] {
-  const layers: Layer[] = game.gameMode === 'mini' 
-    ? [
-        { size: 3, offset: 0, tiles: [] },  // Top: 3x3
-        { size: 2, offset: 1, tiles: [] },  // Middle: 2x2 (centered)
-        { size: 3, offset: 0, tiles: [] }   // Bottom: 3x3
-      ]
-    : game.gameMode === 'pyramid'
-    ? [
-        { size: 2, offset: 2, tiles: [] },  // Top: 2x2 (centered)
-        { size: 3, offset: 1, tiles: [] },  // Middle: 3x3 (centered)
-        { size: 4, offset: 0, tiles: [] }   // Bottom: 4x4
-      ]
-    : [
-        { size: 4, offset: 0, tiles: [] },
-        { size: 3, offset: 1, tiles: [] },
-        { size: 2, offset: 2, tiles: [] }
-      ]
+  const allVisible = game.gameMode === 'pyramid' || game.gameMode === 'crown'
+  const rng = new SeededRandom(game.seed ?? generateRandomSeed())
+  freePlayRng = rng
 
-  const tileMap = new Map<string, string>()
+  let layers: Layer[]
+
+  if (game.gameMode === 'crown') {
+    layers = CROWN_POSITIONS.map(() => ({ size: 7, offset: 0, tiles: [] }))
+  } else if (game.gameMode === 'mini') {
+    layers = [
+      { size: 3, offset: 0, tiles: [] },
+      { size: 2, offset: 1, tiles: [] },
+      { size: 3, offset: 0, tiles: [] }
+    ]
+  } else if (game.gameMode === 'pyramid') {
+    layers = [
+      { size: 2, offset: 2, tiles: [] },
+      { size: 3, offset: 1, tiles: [] },
+      { size: 4, offset: 0, tiles: [] }
+    ]
+  } else {
+    layers = [
+      { size: 4, offset: 0, tiles: [] },
+      { size: 3, offset: 1, tiles: [] },
+      { size: 2, offset: 2, tiles: [] }
+    ]
+  }
+
   const remainingTiles = [...TILE_BAG]
-  
-  // Store the original tile bag for reference
   originalTileBag = [...TILE_BAG]
 
-  // Generate tiles for each layer
-  layers.forEach((layer, z) => {
-    for (let y = layer.offset; y < (layer.size * 2) + layer.offset; y += 2) {
-      for (let x = layer.offset; x < (layer.size * 2) + layer.offset; x += 2) {
-        const letter = remainingTiles.length > 0
-          ? remainingTiles.splice(Math.floor(Math.random() * remainingTiles.length), 1)[0]
-          : '*'
+  const pickLetter = (): string => {
+    if (remainingTiles.length === 0) return '*'
+    const index = Math.floor(rng.next() * remainingTiles.length)
+    return remainingTiles.splice(index, 1)[0]!
+  }
 
-        const coords: Coordinate[] = [
-          [x, y, z],
-          [x + 1, y, z],
-          [x, y + 1, z],
-          [x + 1, y + 1, z]
-        ]
-
-        // Store letter for all coordinates
-        for (const coord of coords) {
-          tileMap.set(JSON.stringify(coord), letter)
-        }
-
-        // Create tile (only for top-left coordinate)
-        const tile: Tile = {
-          id: `${x}-${y}-${z}`,
-          letter,
-          coords,
-          parentCoords: z > 0 ? [
-            [x, y, z - 1],
-            [x + 1, y, z - 1],
-            [x, y + 1, z - 1],
-            [x + 1, y + 1, z - 1]
-          ] : undefined,
-          selected: false,
-          visible: z === 0 || (game.gameMode === 'pyramid' && z > 0), // Top layer always visible, or all layers visible in pyramid mode
-          selectable: z === 0, // Only top layer is initially selectable
-          layer: z,
-          position: { x, y },
-          completelyCovered: z > 0 && !(z === 0 || (game.gameMode === 'pyramid' && z > 0)), // Completely covered if not visible
-          isBonus: false
-        }
-
-        layer.tiles.push(tile)
+  if (game.gameMode === 'crown') {
+    CROWN_POSITIONS.forEach((positions, z) => {
+      for (const { x, y } of positions) {
+        const letter = pickLetter()
+        layers[z]!.tiles.push(createTile(x, y, z, letter, allVisible))
       }
-    }
-  })
+    })
+  } else {
+    layers.forEach((layer, z) => {
+      for (let y = layer.offset; y < (layer.size * 2) + layer.offset; y += 2) {
+        for (let x = layer.offset; x < (layer.size * 2) + layer.offset; x += 2) {
+          const letter = pickLetter()
+          layer.tiles.push(createTile(x, y, z, letter, allVisible))
+        }
+      }
+    })
+  }
 
-  // Create swap pool from remaining tiles (tiles not used in the puzzle)
+  // Create swap pool from remaining tiles
   swapPool = [...remainingTiles]
-  
-  // If we don't have enough tiles in the swap pool, add some from the original bag
-  // This ensures we always have tiles available for swapping
+
   if (swapPool.length < 20) {
     const additionalTiles = originalTileBag.slice(0, 20 - swapPool.length)
     swapPool.push(...additionalTiles)
   }
 
+  // Pre-select 3 swap tiles for deterministic free-play
+  freePlayPreSelectedSwaps = []
+  freePlaySwapIndex = 0
+  const swapPoolCopy = [...swapPool]
+  for (let i = 0; i < 3; i++) {
+    if (swapPoolCopy.length > 0) {
+      const randomIndex = Math.floor(rng.next() * swapPoolCopy.length)
+      freePlayPreSelectedSwaps.push(swapPoolCopy.splice(randomIndex, 1)[0]!)
+    }
+  }
+
   console.log('Swap pool created with', swapPool.length, 'tiles:', swapPool.slice(0, 10), '...')
-  
-  // Assign bonus tiles to layers
-  assignBonusTiles(layers)
-  
+  console.log('Pre-selected free-play swaps:', freePlayPreSelectedSwaps)
+
+  assignBonusTiles(layers, rng)
+
+  // Crown peaks (left, center, right) are always bonus tiles
+  if (game.gameMode === 'crown' && layers[0]) {
+    for (const tile of layers[0].tiles) {
+      const { x, y } = tile.position
+      if (
+        (x === 0 && y === 0) ||
+        (x === 2 && y === 6) ||
+        (x === 0 && y === 12)
+      ) {
+        tile.isBonus = true
+      }
+    }
+  }
+
   return layers
 }
 
@@ -243,32 +395,26 @@ export function assignBonusTiles(layers: Layer[], rng?: SeededRandom): void {
   layers.forEach((layer) => {
     // Flip a coin (50/50 chance) to decide if this layer has a bonus tile
     const hasBonus = rng ? rng.next() < 0.5 : Math.random() < 0.5
-    
+
     if (!hasBonus) return
-    
+
     // Create weighted bag: for each non-wildcard tile, add (Scrabble value) copies
     const weightedBag: Tile[] = []
     layer.tiles.forEach((tile) => {
       if (tile.letter !== '*') {
         const value = getScrabbleLetterValue(tile.letter)
-        // Add this tile to the bag 'value' times
         for (let i = 0; i < value; i++) {
           weightedBag.push(tile)
         }
       }
     })
-    
-    // If no valid tiles (all wildcards), skip this layer
+
     if (weightedBag.length === 0) return
-    
-    // Randomly select one tile from weighted bag
-    const randomIndex = rng 
+
+    const randomIndex = rng
       ? Math.floor(rng.next() * weightedBag.length)
       : Math.floor(Math.random() * weightedBag.length)
-    const selectedTile = weightedBag[randomIndex]
-    
-    // Mark selected tile as bonus
-    selectedTile.isBonus = true
+    weightedBag[randomIndex]!.isBonus = true
   })
 }
 
@@ -788,26 +934,29 @@ export function swapTile(tile: Tile) {
   // Use daily swap pool if available (for daily puzzle mode)
   const currentSwapPool = (window as any).dailySwapPool || swapPool
   const dailyRng = (window as any).dailyRng // Seeded random for daily puzzle
-  const preSelectedSwaps = (window as any).dailyPreSelectedSwaps
-  let swapIndex = (window as any).dailySwapIndex ?? 0
+  const dailyPreSelectedSwaps = (window as any).dailyPreSelectedSwaps
+  let dailySwapIndex = (window as any).dailySwapIndex ?? 0
   
   // Check if we have tiles available
-  if (currentSwapPool.length === 0 && !preSelectedSwaps) {
+  if (currentSwapPool.length === 0 && !dailyPreSelectedSwaps && freePlayPreSelectedSwaps.length === 0) {
     setFeedback("No more tiles available for swapping!", 'red')
     return
   }
   
-  // For daily puzzle, use pre-selected swaps; otherwise use random from pool
+  // For daily puzzle, use pre-selected swaps; free play uses its own pre-selected swaps
   let newLetter: string
   let randomIndex: number | undefined
   
-  if (game.isDailyPuzzle && preSelectedSwaps && swapIndex < preSelectedSwaps.length) {
+  if (game.isDailyPuzzle && dailyPreSelectedSwaps && dailySwapIndex < dailyPreSelectedSwaps.length) {
     // Use the pre-selected swap tile
-    newLetter = preSelectedSwaps[swapIndex]
-    swapIndex++ // Move to next pre-selected swap
-    ;(window as any).dailySwapIndex = swapIndex
+    newLetter = dailyPreSelectedSwaps[dailySwapIndex]
+    dailySwapIndex++ // Move to next pre-selected swap
+    ;(window as any).dailySwapIndex = dailySwapIndex
+  } else if (!game.isDailyPuzzle && freePlaySwapIndex < freePlayPreSelectedSwaps.length) {
+    newLetter = freePlayPreSelectedSwaps[freePlaySwapIndex]!
+    freePlaySwapIndex++
   } else {
-    // Free play mode: get a tile from the swap pool using random
+    // Fallback: get a tile from the swap pool using random
     if (currentSwapPool.length === 0) {
       setFeedback("No more tiles available for swapping!", 'red')
       return
@@ -816,6 +965,8 @@ export function swapTile(tile: Tile) {
     if (dailyRng) {
       // Use seeded random for deterministic daily puzzle swaps (fallback)
       randomIndex = Math.floor(dailyRng.next() * currentSwapPool.length)
+    } else if (freePlayRng) {
+      randomIndex = Math.floor(freePlayRng.next() * currentSwapPool.length)
     } else {
       // Use regular random for free play
       randomIndex = Math.floor(Math.random() * currentSwapPool.length)
@@ -836,7 +987,7 @@ export function swapTile(tile: Tile) {
       swapPoolIndex: randomIndex,
       swapPoolLetter: newLetter,
       wasBonus,
-      swapIndex: game.isDailyPuzzle && preSelectedSwaps ? swapIndex - 1 : undefined // Save the index before increment
+      swapIndex: game.isDailyPuzzle && dailyPreSelectedSwaps ? dailySwapIndex - 1 : undefined // Save the index before increment
     })
   }
   

@@ -6,6 +6,12 @@
   import WordArea from './WordArea.svelte'
   import Score from './Score.svelte'
 
+  interface Props {
+    initialDate?: string
+  }
+
+  let { initialDate }: Props = $props()
+
   let selectedDate = $state('')
   let availableDates = $state<string[]>([])
   let selectedPuzzleData = $state<any>(null)
@@ -72,10 +78,16 @@
       const dateString = getLocalDateString(date)
       dates.push(dateString)
     }
+
+    // Allow deep-linked dates outside the default window
+    if (initialDate && /^\d{4}-\d{2}-\d{2}$/.test(initialDate) && !dates.includes(initialDate)) {
+      dates.unshift(initialDate)
+      dates.sort((a, b) => b.localeCompare(a))
+    }
     
     availableDates = dates
     if (dates.length > 0) {
-      selectedDate = dates[0] // Default to most recent (yesterday)
+      selectedDate = initialDate && dates.includes(initialDate) ? initialDate : dates[0]!
       loadSelectedPuzzle()
     }
   }

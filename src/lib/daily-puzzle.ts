@@ -308,7 +308,12 @@ export class SeededRandom {
 }
 
 // Generate daily puzzle using the same algorithm as regular game but with seeded random
-export function generateDailyPuzzle(seed: number): { layers: Layer[]; swapPool: string[]; rng: SeededRandom } {
+export function generateDailyPuzzle(seed: number): {
+  layers: Layer[]
+  swapPool: string[]
+  rng: SeededRandom
+  preSelectedSwaps: string[]
+} {
   const rng = new SeededRandom(seed)
   
   // Use the same tile bag as regular game

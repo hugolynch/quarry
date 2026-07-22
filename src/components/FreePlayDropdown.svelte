@@ -1,21 +1,23 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte'
+  import type { GameMode } from '../types/game'
   
-  export let currentMode: 'main' | 'mini' | 'pyramid'
+  export let currentMode: GameMode
   export let isActive: boolean = false
   
   const dispatch = createEventDispatcher()
   
   let isOpen = false
   
-  const modes = [
+  const modes: { id: GameMode; label: string }[] = [
     { id: 'main', label: 'Standard' },
     { id: 'mini', label: 'Mini' },
-    { id: 'pyramid', label: 'Pyramid' }
+    { id: 'pyramid', label: 'Pyramid' },
+    { id: 'crown', label: 'Crown' }
   ]
   
-  function handleModeSelect(mode: string) {
-    dispatch('modeSelect', mode as 'main' | 'mini' | 'pyramid')
+  function handleModeSelect(mode: GameMode) {
+    dispatch('modeSelect', mode)
     isOpen = false
   }
   

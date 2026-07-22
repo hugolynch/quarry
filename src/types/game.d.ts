@@ -20,6 +20,8 @@ export type Layer = {
   tiles: Tile[]
 }
 
+export type GameMode = 'main' | 'mini' | 'pyramid' | 'crown'
+
 export type GameState = {
   currentWord: string
   selectedTiles: Tile[]
@@ -36,7 +38,8 @@ export type GameState = {
   penaltyScore: number
   showEndGameConfirmation: boolean
   isDailyPuzzle: boolean
-  gameMode: 'main' | 'mini' | 'pyramid'
+  gameMode: GameMode
+  seed: number | null
 }
 
 export type TileState = 'available' | 'selected' | 'unavailable' | 'temp-selectable' | 'hidden'

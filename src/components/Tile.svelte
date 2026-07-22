@@ -63,7 +63,7 @@
     background-color: #E8E9F0;
   }
 
-  /* Default tiles (unselected) - Middle layer (layer 1) */
+  /* Default tiles (unselected) - layer 1 */
   .tile.available.layer-1 {
     background-color: #E3E5EF;
     border-bottom: 4px solid #9E9FAA;
@@ -73,7 +73,7 @@
     background-color: #D8DAE5;
   }
 
-  /* Default tiles (unselected) - Bottom layer (layer 2) */
+  /* Default tiles (unselected) - layer 2 */
   .tile.available.layer-2 {
     background-color: #C9CAD6;
     border-bottom: 4px solid #8F909A;
@@ -83,22 +83,50 @@
     background-color: #BFC0CC;
   }
 
-  /* Selected tiles - Top layer (layer 0) */
+  /* Default tiles (unselected) - layer 3 */
+  .tile.available.layer-3 {
+    background-color: #B0B1BD;
+    border-bottom: 4px solid #7A7B85;
+  }
+
+  .tile.available.layer-3:hover {
+    background-color: #A5A6B2;
+  }
+
+  /* Default tiles (unselected) - layer 4 */
+  .tile.available.layer-4 {
+    background-color: #9798A4;
+    border-bottom: 4px solid #686972;
+  }
+
+  .tile.available.layer-4:hover {
+    background-color: #8C8D99;
+  }
+
+  /* Selected tiles */
   .tile.selected.layer-0 {
     background-color: #EDF5EB;
     border-bottom: 4px solid #ACD6A3;
   }
 
-  /* Selected tiles - Middle layer (layer 1) */
   .tile.selected.layer-1 {
     background-color: #D4EAD0;
     border-bottom: 4px solid #80C171;
   }
 
-  /* Selected tiles - Bottom layer (layer 2) */
   .tile.selected.layer-2 {
     background-color: #ACD6A3;
     border-bottom: 4px solid #63B251;
+  }
+
+  .tile.selected.layer-3 {
+    background-color: #8FC484;
+    border-bottom: 4px solid #4FA040;
+  }
+
+  .tile.selected.layer-4 {
+    background-color: #72B265;
+    border-bottom: 4px solid #3D8A30;
   }
 
   /* Unavailable tiles - top layer uses same colors as available */
@@ -108,21 +136,31 @@
     cursor: not-allowed;
   }
 
-  /* Unavailable tiles - middle layer (layer 1) */
   .tile.unavailable.layer-1 {
     background-color: #FADEC9;
     border-bottom: 4px solid #EF9E58;
     cursor: not-allowed;
   }
 
-  /* Unavailable tiles - bottom layer (layer 2) */
   .tile.unavailable.layer-2 {
     background-color: #F5C197;
     border-bottom: 4px solid #E88828;
     cursor: not-allowed;
   }
 
-  /* Temp-selectable tiles - Middle layer (layer 1) */
+  .tile.unavailable.layer-3 {
+    background-color: #EBA66A;
+    border-bottom: 4px solid #D9741A;
+    cursor: not-allowed;
+  }
+
+  .tile.unavailable.layer-4 {
+    background-color: #E08B3D;
+    border-bottom: 4px solid #C66510;
+    cursor: not-allowed;
+  }
+
+  /* Temp-selectable tiles */
   .tile.temp-selectable.layer-1 {
     background-color: #D4E5FF;
     border-bottom: 4px solid #83B2FF;
@@ -133,7 +171,6 @@
     background-color: #C7DDFF;
   }
 
-  /* Temp-selectable tiles - Bottom layer (layer 2) */
   .tile.temp-selectable.layer-2 {
     background-color: #ADCCFF;
     border-bottom: 4px solid #66A0FF;
@@ -142,6 +179,26 @@
 
   .tile.temp-selectable.layer-2:hover {
     background-color: #A0C5FF;
+  }
+
+  .tile.temp-selectable.layer-3 {
+    background-color: #86B3FF;
+    border-bottom: 4px solid #4A8EFF;
+    cursor: pointer;
+  }
+
+  .tile.temp-selectable.layer-3:hover {
+    background-color: #79AAFF;
+  }
+
+  .tile.temp-selectable.layer-4 {
+    background-color: #5F9AFF;
+    border-bottom: 4px solid #2E7CFF;
+    cursor: pointer;
+  }
+
+  .tile.temp-selectable.layer-4:hover {
+    background-color: #5291FF;
   }
 
   /* Hidden tiles - look like normal tiles since they're completely covered */
@@ -160,6 +217,18 @@
   .tile.hidden.layer-2 {
     background-color: #C9CAD6;
     border-bottom: 4px solid #8F909A;
+    cursor: not-allowed;
+  }
+
+  .tile.hidden.layer-3 {
+    background-color: #B0B1BD;
+    border-bottom: 4px solid #7A7B85;
+    cursor: not-allowed;
+  }
+
+  .tile.hidden.layer-4 {
+    background-color: #9798A4;
+    border-bottom: 4px solid #686972;
     cursor: not-allowed;
   }
 

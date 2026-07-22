@@ -1,11 +1,25 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { game, initializeGame, confirmEndGame, showEndGameConfirmation, cancelEndGame, setDailyPuzzleMode, setGameMode, getDailyPuzzleEndGameCallback } from './lib/state.svelte'
+  import {
+    game,
+    initializeGame,
+    confirmEndGame,
+    showEndGameConfirmation,
+    cancelEndGame,
+    setDailyPuzzleMode,
+    setGameMode,
+    getDailyPuzzleEndGameCallback,
+    FREE_PLAY_MODES
+  } from './lib/state.svelte'
+  import type { GameMode } from './types/game'
+  import { getTodayDate } from './lib/daily-puzzle'
   import { initializeFullscreen, onFullscreenChange, getFullscreenState, enterFullscreenIfPWA } from './lib/fullscreen'
   import Board from './components/Board.svelte'
   import MiniBoard from './components/MiniBoard.svelte'
   import PyramidBoard from './components/PyramidBoard.svelte'
+  import CrownBoard from './components/CrownBoard.svelte'
   import FreePlayDropdown from './components/FreePlayDropdown.svelte'
+  import ShareGame from './components/ShareGame.svelte'
   import WordArea from './components/WordArea.svelte'
   import Score from './components/Score.svelte'
   import DailyPuzzle from './components/DailyPuzzle.svelte'
@@ -14,11 +28,26 @@
   import InstallPrompt from './components/InstallPrompt.svelte'
   const logo = './logo.svg'
 
+  type Page = GameMode | 'daily' | 'instructions' | 'archive'
+
   // Navigation state
-  let currentPage = $state<'main' | 'mini' | 'pyramid' | 'daily' | 'instructions' | 'archive'>('main')
+  let currentPage = $state<Page>('main')
+  let archiveInitialDate = $state<string | undefined>(undefined)
   
   // Fullscreen state
   let fullscreenState = $state(getFullscreenState())
+
+  function isFreePlayMode(value: string): value is GameMode {
+    return (FREE_PLAY_MODES as string[]).includes(value)
+  }
+
+  function startFreePlay(mode: GameMode, seed?: number) {
+    currentPage = mode
+    localStorage.setItem('quarry-current-page', mode)
+    setDailyPuzzleMode(false)
+    setGameMode(mode)
+    initializeGame(seed)
+  }
 
   onMount(() => {
     // Initialize fullscreen support
@@ -37,74 +66,62 @@
   })
   
   onMount(() => {
-    // Restore page state from localStorage
-    const savedPage = localStorage.getItem('quarry-current-page')
-    if (savedPage && ['main', 'mini', 'pyramid', 'daily', 'instructions', 'archive'].includes(savedPage)) {
-      currentPage = savedPage as 'main' | 'mini' | 'pyramid' | 'daily' | 'instructions' | 'archive'
+    const params = new URLSearchParams(window.location.search)
+    const modeParam = params.get('mode')
+    const seedParam = params.get('seed')
+    const dateParam = params.get('date')
+
+    // URL takes precedence over localStorage
+    if (modeParam && isFreePlayMode(modeParam)) {
+      const seed = seedParam !== null && /^\d+$/.test(seedParam)
+        ? Number(seedParam)
+        : undefined
+      startFreePlay(modeParam, seed)
+      return
     }
 
-    // Set to regular game mode (not Daily Puzzle) unless on daily page
+    if (modeParam === 'daily') {
+      const today = getTodayDate()
+      if (dateParam && dateParam !== today) {
+        archiveInitialDate = dateParam
+        currentPage = 'archive'
+        localStorage.setItem('quarry-current-page', 'archive')
+        setDailyPuzzleMode(false)
+      } else {
+        currentPage = 'daily'
+        localStorage.setItem('quarry-current-page', 'daily')
+        setDailyPuzzleMode(true)
+      }
+      // Keep mode/date in the URL for sharing
+      return
+    }
+
+    // Restore page state from localStorage
+    const savedPage = localStorage.getItem('quarry-current-page')
+    if (savedPage && (isFreePlayMode(savedPage) || ['daily', 'instructions', 'archive'].includes(savedPage))) {
+      currentPage = savedPage as Page
+    }
+
     setDailyPuzzleMode(currentPage === 'daily')
     
-    // Set game mode based on current page
-    if (currentPage === 'mini') {
-      setGameMode('mini')
-    } else if (currentPage === 'pyramid') {
-      setGameMode('pyramid')
-    } else if (currentPage === 'main') {
-      setGameMode('main')
-    }
-    
-    // Only initialize game if on main, mini, or pyramid page
-    if (currentPage === 'main' || currentPage === 'mini' || currentPage === 'pyramid') {
+    if (isFreePlayMode(currentPage)) {
+      setGameMode(currentPage)
       initializeGame()
     }
   })
 
-  function goToMainGame() {
-    currentPage = 'main'
-    localStorage.setItem('quarry-current-page', 'main')
-    // Set to regular game mode (not Daily Puzzle)
-    setDailyPuzzleMode(false)
-    setGameMode('main')
-    // Reset game state and generate new puzzle for free play
-    initializeGame()
-  }
-
-  function goToMini() {
-    currentPage = 'mini'
-    localStorage.setItem('quarry-current-page', 'mini')
-    // Set to regular game mode (not Daily Puzzle)
-    setDailyPuzzleMode(false)
-    setGameMode('mini')
-    // Reset game state and generate new puzzle for mini mode
-    initializeGame()
-  }
-
-  function goToPyramid() {
-    currentPage = 'pyramid'
-    localStorage.setItem('quarry-current-page', 'pyramid')
-    // Set to regular game mode (not Daily Puzzle)
-    setDailyPuzzleMode(false)
-    setGameMode('pyramid')
-    // Reset game state and generate new puzzle for pyramid mode
-    initializeGame()
-  }
-
-  function handleFreePlayModeSelect(event: CustomEvent<'main' | 'mini' | 'pyramid'>) {
-    const mode = event.detail
-    currentPage = mode
-    localStorage.setItem('quarry-current-page', mode)
-    // Set to regular game mode (not Daily Puzzle)
-    setDailyPuzzleMode(false)
-    setGameMode(mode)
-    // Reset game state and generate new puzzle for selected mode
-    initializeGame()
+  function handleFreePlayModeSelect(event: CustomEvent<GameMode>) {
+    startFreePlay(event.detail)
   }
 
   function goToDailyPuzzle() {
     currentPage = 'daily'
     localStorage.setItem('quarry-current-page', 'daily')
+    archiveInitialDate = undefined
+    const url = new URL(window.location.href)
+    url.search = ''
+    url.searchParams.set('mode', 'daily')
+    history.replaceState(null, '', url.toString())
   }
 
   function goToInstructions() {
@@ -115,8 +132,18 @@
   function goToArchive() {
     currentPage = 'archive'
     localStorage.setItem('quarry-current-page', 'archive')
+    archiveInitialDate = undefined
   }
 
+  function freePlayModeForNav(): GameMode {
+    return isFreePlayMode(currentPage) ? currentPage : 'main'
+  }
+
+  function restartCurrentFreePlay() {
+    if (isFreePlayMode(currentPage)) {
+      startFreePlay(currentPage)
+    }
+  }
 </script>
 
 <main>
@@ -125,8 +152,8 @@
   <!-- Navigation -->
   <nav class="page-nav">
     <FreePlayDropdown 
-      currentMode={currentPage === 'main' ? 'main' : currentPage === 'mini' ? 'mini' : currentPage === 'pyramid' ? 'pyramid' : 'main'}
-      isActive={currentPage === 'main' || currentPage === 'mini' || currentPage === 'pyramid'}
+      currentMode={freePlayModeForNav()}
+      isActive={isFreePlayMode(currentPage)}
       on:modeSelect={handleFreePlayModeSelect}
     />
     <button 
@@ -160,9 +187,10 @@
       <Score />
       
       <div class="bottom-controls">
+        <ShareGame />
         {#if game.gameOver}
           <button 
-            onclick={goToMainGame} 
+            onclick={restartCurrentFreePlay} 
             class="new-game-button"
           >
             <svg class="button-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -196,9 +224,10 @@
       <Score />
       
       <div class="bottom-controls">
+        <ShareGame />
         {#if game.gameOver}
           <button 
-            onclick={goToMini} 
+            onclick={restartCurrentFreePlay} 
             class="new-game-button"
           >
             <svg class="button-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -232,9 +261,47 @@
       <Score />
       
       <div class="bottom-controls">
+        <ShareGame />
         {#if game.gameOver}
           <button 
-            onclick={goToPyramid} 
+            onclick={restartCurrentFreePlay} 
+            class="new-game-button"
+          >
+            <svg class="button-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+              <path d="M21 3v5h-5"></path>
+              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+              <path d="M3 21v-5h5"></path>
+            </svg>
+            New Game
+          </button>
+        {:else}
+          <button 
+            onclick={showEndGameConfirmation} 
+            class="done-button"
+          >
+            <svg class="button-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20,6 9,17 4,12"></polyline>
+            </svg>
+            End Game
+          </button>
+        {/if}
+      </div>
+    </div>
+  {/if}
+
+  <!-- Crown Game Page -->
+  {#if currentPage === 'crown'}
+    <div class="game-page">
+      <CrownBoard />
+      <WordArea />
+      <Score />
+      
+      <div class="bottom-controls">
+        <ShareGame />
+        {#if game.gameOver}
+          <button 
+            onclick={restartCurrentFreePlay} 
             class="new-game-button"
           >
             <svg class="button-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -272,7 +339,7 @@
 
   <!-- Archive Page -->
   {#if currentPage === 'archive'}
-    <Archive />
+    <Archive initialDate={archiveInitialDate} />
   {/if}
 
   <!-- Install Prompt -->
@@ -421,6 +488,11 @@
 
   .bottom-controls {
     margin-top: auto;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
   }
 
   .done-button {

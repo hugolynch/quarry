@@ -16,7 +16,7 @@
     saveDailyCompletionData,
     loadDailyCompletionData
   } from '../lib/daily-puzzle'
-  import { game, initializeGame, showEndGameConfirmation, cancelEndGame, confirmEndGame, setFeedback, setDailyPuzzleMode, setDailyPuzzleEndGameCallback, getUndoHistory, setUndoHistory, clearUndoHistory } from '../lib/state.svelte'
+  import { game, initializeGame, showEndGameConfirmation, cancelEndGame, confirmEndGame, setFeedback, setDailyPuzzleMode, setDailyPuzzleEndGameCallback, getUndoHistory, setUndoHistory, clearUndoHistory, getDailyShareUrl } from '../lib/state.svelte'
   import Board from './Board.svelte'
   import WordArea from './WordArea.svelte'
   import Score from './Score.svelte'
@@ -446,6 +446,7 @@
 
   // Share daily puzzle stats
   async function shareStats() {
+    const shareUrl = getDailyShareUrl(dailyData.date)
     const statsText =
 `Quarry Daily Puzzle
 ${formatDate(dailyData.date)}
@@ -453,7 +454,9 @@ ${formatDate(dailyData.date)}
 First Score: ${dailyData.firstScore}
 Best Score: ${dailyData.bestScore}
 Attempts: ${dailyData.attempts}
-Longest Word: ${dailyData.longestWordLength} letters`
+Longest Word: ${dailyData.longestWordLength} letters
+
+${shareUrl}`
 
     try {
       await navigator.clipboard.writeText(statsText)
